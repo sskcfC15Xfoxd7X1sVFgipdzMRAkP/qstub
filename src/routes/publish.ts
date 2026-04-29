@@ -94,11 +94,7 @@ async function handlePublish(c: Context, args: HandleArgs): Promise<Response> {
   return c.json({ messageId: id, url: destination });
 }
 
-function parseIntHeader(
-  value: string | undefined,
-  fallback: number,
-  name: string,
-): number | Error {
+function parseIntHeader(value: string | undefined, fallback: number, name: string): number | Error {
   if (value === undefined) return fallback;
   const parsed = Number.parseInt(value, 10);
   if (!Number.isFinite(parsed) || parsed < 0) {

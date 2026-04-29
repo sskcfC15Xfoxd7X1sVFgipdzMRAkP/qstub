@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite";
-import { dirname } from "node:path";
 import { mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 
 export type MessageStatus = "pending" | "in_flight" | "delivered" | "failed" | "cancelled";
 
@@ -65,7 +65,13 @@ export interface Db {
   claimDue: (limit: number, now: number) => MessageRow[];
   markDelivered: (id: string, now: number) => void;
   markFailed: (id: string, error: string, now: number) => void;
-  rescheduleRetry: (id: string, attempt: number, notBeforeMs: number, error: string, now: number) => void;
+  rescheduleRetry: (
+    id: string,
+    attempt: number,
+    notBeforeMs: number,
+    error: string,
+    now: number,
+  ) => void;
   reset: () => void;
   close: () => void;
 }
@@ -112,7 +118,7 @@ export function openDb(path: string): Db {
     )
   `);
 
-  const getStmt = db.prepare<RawRow, { $id: string }>(`SELECT * FROM messages WHERE id = $id`);
+  const getStmt = db.prepare<RawRow, { $id: string }>("SELECT * FROM messages WHERE id = $id");
 
   const cancelStmt = db.prepare<void, { $id: string; $now: number }>(`
     UPDATE messages SET status = 'cancelled', updated_ms = $now
@@ -151,7 +157,7 @@ export function openDb(path: string): Db {
     WHERE id = $id
   `);
 
-  const resetStmt = db.prepare(`DELETE FROM messages`);
+  const resetStmt = db.prepare("DELETE FROM messages");
 
   function rowToMessage(row: RawRow): MessageRow {
     return {

@@ -48,7 +48,7 @@ export async function deliverMessage(message: MessageRow, deps: DeliverDeps): Pr
   }
 
   const now = Date.now();
-  if (response && response.ok) {
+  if (response?.ok) {
     db.markDelivered(message.id, now);
     logger.info("delivered", {
       messageId: message.id,

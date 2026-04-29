@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { backoffMs } from "../src/worker/backoff.ts";
 import { openDb } from "../src/db.ts";
-import { createLogger } from "../src/logger.ts";
 import { newMessageId } from "../src/ids.ts";
+import { createLogger } from "../src/logger.ts";
+import { backoffMs } from "../src/worker/backoff.ts";
 import { deliverMessage } from "../src/worker/deliver.ts";
 
 describe("retries", () => {

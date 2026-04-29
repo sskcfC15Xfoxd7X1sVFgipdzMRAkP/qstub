@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { openDb } from "../src/db.ts";
-import { createLogger } from "../src/logger.ts";
 import { newMessageId } from "../src/ids.ts";
+import { createLogger } from "../src/logger.ts";
 import { createWorker } from "../src/worker/loop.ts";
 
 describe("delay", () => {

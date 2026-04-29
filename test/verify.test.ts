@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { Receiver } from "@upstash/qstash";
 import { openDb } from "../src/db.ts";
-import { createLogger } from "../src/logger.ts";
 import { newMessageId } from "../src/ids.ts";
+import { createLogger } from "../src/logger.ts";
 import { deliverMessage } from "../src/worker/deliver.ts";
 
 const CURRENT = "sig_test_current";
@@ -22,11 +22,7 @@ describe("worker delivery + receiver verification", () => {
 
     const fakeFetch = (async (input: Request | string | URL, init?: RequestInit) => {
       const url =
-        typeof input === "string"
-          ? input
-          : input instanceof URL
-            ? input.toString()
-            : input.url;
+        typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
       const headers = new Headers(init?.headers);
       const body = init?.body ? new TextDecoder().decode(init.body as Uint8Array) : "";
       seen.url = url;

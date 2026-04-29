@@ -19,24 +19,13 @@
   "engines": {
     "bun": ">=1.1.0"
   },
-  "files": [
-    "src",
-    "README.md",
-    "LICENSE"
-  ],
+  "files": ["src", "README.md", "LICENSE"],
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/doomspork/qstub.git"
   },
-  "keywords": [
-    "qstash",
-    "upstash",
-    "mock",
-    "local-development",
-    "bun",
-    "hono"
-  ],
+  "keywords": ["qstash", "upstash", "mock", "local-development", "bun", "hono"],
   "dependencies": {
     "hono": "^4.6.14"
   },

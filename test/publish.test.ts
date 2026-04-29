@@ -63,18 +63,15 @@ describe("publish route", () => {
   test("Upstash-Forward-* headers are stripped of their prefix and forwarded", async () => {
     const { db, app } = fresh();
     const res = await app.fetch(
-      new Request(
-        `http://qstub/v2/publish/${encodeURIComponent("http://localhost:3000/x")}`,
-        {
-          method: "POST",
-          body: "raw",
-          headers: {
-            authorization: "Bearer dev",
-            "upstash-forward-x-trace": "abc-123",
-            "upstash-forward-content-type": "text/plain",
-          },
+      new Request(`http://qstub/v2/publish/${encodeURIComponent("http://localhost:3000/x")}`, {
+        method: "POST",
+        body: "raw",
+        headers: {
+          authorization: "Bearer dev",
+          "upstash-forward-x-trace": "abc-123",
+          "upstash-forward-content-type": "text/plain",
         },
-      ),
+      }),
     );
     expect(res.status).toBe(200);
     const json = (await res.json()) as { messageId: string };
@@ -88,17 +85,14 @@ describe("publish route", () => {
     const { db, app } = fresh();
     const before = Date.now();
     const res = await app.fetch(
-      new Request(
-        `http://qstub/v2/publish/${encodeURIComponent("http://localhost:3000/x")}`,
-        {
-          method: "POST",
-          body: "{}",
-          headers: {
-            authorization: "Bearer dev",
-            "upstash-delay": "5s",
-          },
+      new Request(`http://qstub/v2/publish/${encodeURIComponent("http://localhost:3000/x")}`, {
+        method: "POST",
+        body: "{}",
+        headers: {
+          authorization: "Bearer dev",
+          "upstash-delay": "5s",
         },
-      ),
+      }),
     );
     expect(res.status).toBe(200);
     const json = (await res.json()) as { messageId: string };
