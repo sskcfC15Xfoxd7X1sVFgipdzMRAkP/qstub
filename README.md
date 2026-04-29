@@ -18,7 +18,7 @@ Working with QStash locally is normally painful because QStash's servers can't r
 Requires [Bun](https://bun.com/) `>= 1.1.0`.
 
 ```bash
-git clone https://github.com/doomspork/qstub
+git clone https://github.com/sskcfC15Xfoxd7X1sVFgipdzMRAkP/qstub
 cd qstub
 bun install
 bun link            # makes the `qstub` command available globally
