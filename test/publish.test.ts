@@ -15,7 +15,7 @@ describe("publish route", () => {
   test("rejects requests with no Authorization", async () => {
     const { app } = fresh();
     const res = await app.fetch(
-      new Request(`http://qstub/v2/publish/${encodeURIComponent("http://localhost:3000/x")}`, {
+      new Request(`http://downstash/v2/publish/${encodeURIComponent("http://localhost:3000/x")}`, {
         method: "POST",
         body: "{}",
       }),
@@ -26,7 +26,7 @@ describe("publish route", () => {
   test("@upstash/qstash Client publishJSON results in a pending row", async () => {
     const { db, app } = fresh();
     const client = new Client({
-      baseUrl: "http://qstub",
+      baseUrl: "http://downstash",
       token: "dev",
     });
 
@@ -63,7 +63,7 @@ describe("publish route", () => {
   test("Upstash-Forward-* headers are stripped of their prefix and forwarded", async () => {
     const { db, app } = fresh();
     const res = await app.fetch(
-      new Request(`http://qstub/v2/publish/${encodeURIComponent("http://localhost:3000/x")}`, {
+      new Request(`http://downstash/v2/publish/${encodeURIComponent("http://localhost:3000/x")}`, {
         method: "POST",
         body: "raw",
         headers: {
@@ -85,7 +85,7 @@ describe("publish route", () => {
     const { db, app } = fresh();
     const before = Date.now();
     const res = await app.fetch(
-      new Request(`http://qstub/v2/publish/${encodeURIComponent("http://localhost:3000/x")}`, {
+      new Request(`http://downstash/v2/publish/${encodeURIComponent("http://localhost:3000/x")}`, {
         method: "POST",
         body: "{}",
         headers: {
