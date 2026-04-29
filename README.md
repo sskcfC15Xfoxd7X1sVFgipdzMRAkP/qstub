@@ -114,7 +114,8 @@ const ok = await receiver.verify({
 | `Upstash-Failure-Callback` | Implemented | Fired once retries are exhausted |
 | Signed `Upstash-Signature` JWT | Implemented | HS256, verified by real `@upstash/qstash` `Receiver` |
 | `GET /v2/messages/:id` / `DELETE /v2/messages/:id` | Implemented | Inspect or cancel pending messages |
-| Schedules (cron), Queues, DLQ, URL Groups, Batch publish, Events log, Web console | Not yet | Reserved for v2+ |
+| `POST /v2/batch` | Implemented | Fan-out: each item becomes an independent pending message |
+| Schedules (cron), Queues, DLQ, URL Groups, Events log, Web console | Not yet | Reserved for v2+ |
 
 ## Inspecting state
 
@@ -175,7 +176,6 @@ Flags always win over env vars.
 - Queues with parallelism — `POST /v2/queues` + `POST /v2/enqueue/:queue/:dest`
 - Dead-letter queue — `GET /v2/dlq`, requeue, delete
 - URL Groups (topics) — fan-out
-- Batch publish — `POST /v2/batch`
 - Events log — `GET /v2/events`
 - Web console UI
 
