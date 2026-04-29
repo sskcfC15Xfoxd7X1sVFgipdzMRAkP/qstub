@@ -21,6 +21,7 @@ export function publishRoute({ db, logger }: PublishDeps): Hono {
   app.post("/v2/publishJSON/:destination{.+}", (c) =>
     handlePublish(c, { db, logger, forceJson: true }),
   );
+  app.post("/v2/batch", (c) => handleBatch(c, { db, logger }));
 
   return app;
 }
@@ -136,6 +137,130 @@ function computeNotBefore(
     }
   }
   return now;
+}
+
+interface BatchItem {
+  destination?: unknown;
+  headers?: unknown;
+  body?: unknown;
+}
+
+async function handleBatch(c: Context, { db, logger }: PublishDeps): Promise<Response> {
+  const auth = c.req.header("authorization") ?? "";
+  if (!/^Bearer\s+\S+/i.test(auth)) {
+    return c.json({ error: "missing or empty Authorization bearer token" }, 401);
+  }
+
+  let items: unknown;
+  try {
+    items = await c.req.json();
+  } catch {
+    return c.json({ error: "request body must be a JSON array" }, 400);
+  }
+  if (!Array.isArray(items)) {
+    return c.json({ error: "request body must be a JSON array" }, 400);
+  }
+
+  const results: { messageId: string; url: string }[] = [];
+
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i] as BatchItem;
+    if (typeof item !== "object" || item === null) {
+      return c.json({ error: `item ${i}: must be an object` }, 400);
+    }
+
+    const { destination: rawDest, headers: rawHeaders, body: rawBody } = item;
+
+    if (typeof rawDest !== "string" || !rawDest) {
+      return c.json({ error: `item ${i}: destination is required` }, 400);
+    }
+
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(rawDest);
+    } catch {
+      return c.json({ error: `item ${i}: invalid destination URL: ${rawDest}` }, 400);
+    }
+    if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+      return c.json(
+        { error: `item ${i}: unsupported destination protocol: ${parsedUrl.protocol}` },
+        400,
+      );
+    }
+
+    if (rawHeaders !== undefined && (typeof rawHeaders !== "object" || Array.isArray(rawHeaders))) {
+      return c.json({ error: `item ${i}: headers must be an object` }, 400);
+    }
+    const itemHeaders = (rawHeaders ?? {}) as Record<string, string>;
+    const getHeader = (name: string): string | undefined => {
+      const lower = name.toLowerCase();
+      for (const [k, v] of Object.entries(itemHeaders)) {
+        if (k.toLowerCase() === lower) return v;
+      }
+      return undefined;
+    };
+
+    const body = rawBody != null ? new TextEncoder().encode(String(rawBody)) : new Uint8Array(0);
+
+    const method = (getHeader("upstash-method") ?? "POST").toUpperCase();
+
+    const retries = parseIntHeader(getHeader("upstash-retries"), 3, "Upstash-Retries");
+    if (retries instanceof Error) return c.json({ error: `item ${i}: ${retries.message}` }, 400);
+
+    const timeoutMs = parseDurationHeader(getHeader("upstash-timeout"), 30_000, "Upstash-Timeout");
+    if (timeoutMs instanceof Error)
+      return c.json({ error: `item ${i}: ${timeoutMs.message}` }, 400);
+
+    const notBeforeMs = computeNotBefore(
+      getHeader("upstash-delay"),
+      getHeader("upstash-not-before"),
+    );
+    if (notBeforeMs instanceof Error)
+      return c.json({ error: `item ${i}: ${notBeforeMs.message}` }, 400);
+
+    const forwardHeaders = collectForwardHeadersFromObject(itemHeaders);
+
+    const id = newMessageId();
+    db.insertMessage({
+      id,
+      destination: rawDest,
+      method,
+      body,
+      forwardHeaders,
+      retries,
+      notBeforeMs,
+      timeoutMs,
+      callbackUrl: getHeader("upstash-callback") ?? null,
+      failureCallbackUrl: getHeader("upstash-failure-callback") ?? null,
+    });
+
+    logger.info("batch item accepted", {
+      messageId: id,
+      destination: rawDest,
+      method,
+      notBeforeMs,
+      bodyBytes: body.byteLength,
+      batchIndex: i,
+    });
+
+    results.push({ messageId: id, url: rawDest });
+  }
+
+  logger.info("batch accepted", { count: results.length });
+  return c.json(results);
+}
+
+function collectForwardHeadersFromObject(headers: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(headers)) {
+    const lower = key.toLowerCase();
+    if (lower === "content-type") {
+      out["Content-Type"] = value;
+    } else if (lower.startsWith(FORWARD_PREFIX)) {
+      out[key.slice(FORWARD_PREFIX.length)] = value;
+    }
+  }
+  return out;
 }
 
 function collectForwardHeaders(headers: Headers, forceJson: boolean): Record<string, string> {
