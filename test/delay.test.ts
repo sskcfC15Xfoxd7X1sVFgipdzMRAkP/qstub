@@ -9,10 +9,10 @@ describe("delay", () => {
     const db = openDb(":memory:");
     const logger = createLogger("error");
     let delivered = 0;
-    const fakeFetch: typeof fetch = (async () => {
+    const fakeFetch = (async () => {
       delivered += 1;
       return new Response("ok", { status: 200 });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     const worker = createWorker({
       db,

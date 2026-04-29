@@ -1,0 +1,199 @@
+#!/usr/bin/env bun
+import { type ConfigOverrides, type LogLevel, resolveConfig } from "./config.ts";
+import { openDb } from "./db.ts";
+import { createLogger } from "./logger.ts";
+import { createServer } from "./server.ts";
+import { createWorker } from "./worker/loop.ts";
+
+interface ParsedArgs {
+  command: "serve" | "reset" | "keys" | "help";
+  overrides: ConfigOverrides;
+  quiet: boolean;
+}
+
+const VALUE_FLAGS = new Set([
+  "port",
+  "db",
+  "tick-ms",
+  "current-signing-key",
+  "next-signing-key",
+  "log-level",
+]);
+
+function parseArgs(argv: string[]): ParsedArgs {
+  const overrides: ConfigOverrides = {};
+  let quiet = false;
+  let command: ParsedArgs["command"] = "serve";
+  let commandFound = false;
+
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i]!;
+    if (!arg.startsWith("--")) {
+      if (commandFound) {
+        console.error(`unexpected argument: ${arg}`);
+        process.exit(2);
+      }
+      if (arg === "serve" || arg === "reset" || arg === "keys" || arg === "help") {
+        command = arg;
+        commandFound = true;
+        continue;
+      }
+      console.error(`unknown command: ${arg}`);
+      process.exit(2);
+    }
+
+    const eqIdx = arg.indexOf("=");
+    let name: string;
+    let value: string | undefined;
+    if (eqIdx >= 0) {
+      name = arg.slice(2, eqIdx);
+      value = arg.slice(eqIdx + 1);
+    } else {
+      name = arg.slice(2);
+      if (VALUE_FLAGS.has(name)) {
+        const next = argv[i + 1];
+        if (next === undefined) {
+          console.error(`flag --${name} requires a value`);
+          process.exit(2);
+        }
+        value = next;
+        i++;
+      }
+    }
+    switch (name) {
+      case "port":
+        overrides.port = requireInt(name, value);
+        break;
+      case "db":
+        overrides.dbPath = requireValue(name, value);
+        break;
+      case "tick-ms":
+        overrides.tickMs = requireInt(name, value);
+        break;
+      case "current-signing-key":
+        overrides.currentSigningKey = requireValue(name, value);
+        break;
+      case "next-signing-key":
+        overrides.nextSigningKey = requireValue(name, value);
+        break;
+      case "log-level":
+        overrides.logLevel = requireValue(name, value) as LogLevel;
+        break;
+      case "quiet":
+        quiet = true;
+        break;
+      case "help":
+        command = "help";
+        break;
+      default:
+        console.error(`unknown flag: --${name}`);
+        process.exit(2);
+    }
+  }
+
+  if (quiet && overrides.logLevel === undefined) {
+    overrides.logLevel = "warn";
+  }
+
+  return { command, overrides, quiet };
+}
+
+function requireValue(name: string, value: string | undefined): string {
+  if (value === undefined || value === "") {
+    console.error(`flag --${name} requires a value`);
+    process.exit(2);
+  }
+  return value;
+}
+
+function requireInt(name: string, value: string | undefined): number {
+  const raw = requireValue(name, value);
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    console.error(`flag --${name} must be a non-negative integer, got: ${raw}`);
+    process.exit(2);
+  }
+  return parsed;
+}
+
+function printHelp(): void {
+  console.log(`qstub - local QStash-compatible dev server
+
+usage:
+  qstub                            start the server (default port 8080)
+  qstub serve                      explicit serve subcommand
+  qstub reset                      truncate the messages table
+  qstub keys                       print signing keys for .env.local
+  qstub help                       show this help
+
+flags:
+  --port <n>                       HTTP port (env: QSTUB_PORT, default 8080)
+  --db <path>                      SQLite db file (env: QSTUB_DB, default .qstub/db.sqlite)
+  --tick-ms <n>                    delivery loop interval (env: QSTUB_TICK_MS, default 250)
+  --current-signing-key <s>        override current key (env: QSTUB_CURRENT_SIGNING_KEY)
+  --next-signing-key <s>           override next key (env: QSTUB_NEXT_SIGNING_KEY)
+  --log-level <debug|info|warn|error>   log verbosity (env: QSTUB_LOG_LEVEL)
+  --quiet                          shorthand for --log-level=warn
+`);
+}
+
+async function main(): Promise<void> {
+  const args = parseArgs(process.argv.slice(2));
+  const config = resolveConfig(args.overrides);
+
+  if (args.command === "help") {
+    printHelp();
+    return;
+  }
+
+  if (args.command === "keys") {
+    console.log(`QSTASH_CURRENT_SIGNING_KEY=${config.currentSigningKey}`);
+    console.log(`QSTASH_NEXT_SIGNING_KEY=${config.nextSigningKey}`);
+    return;
+  }
+
+  if (args.command === "reset") {
+    const db = openDb(config.dbPath);
+    db.reset();
+    db.close();
+    console.log(`reset: cleared messages in ${config.dbPath}`);
+    return;
+  }
+
+  const logger = createLogger(config.logLevel);
+  const db = openDb(config.dbPath);
+  const app = createServer({ db, logger });
+  const worker = createWorker({
+    db,
+    logger,
+    currentSigningKey: config.currentSigningKey,
+    tickMs: config.tickMs,
+  });
+
+  const server = Bun.serve({
+    port: config.port,
+    fetch: app.fetch,
+  });
+  worker.start();
+
+  logger.info("qstub listening", {
+    port: config.port,
+    db: config.dbPath,
+    tickMs: config.tickMs,
+  });
+
+  let shuttingDown = false;
+  const shutdown = async (signal: string) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    logger.info("shutting down", { signal });
+    await worker.stop();
+    server.stop();
+    db.close();
+    process.exit(0);
+  };
+  process.on("SIGINT", () => void shutdown("SIGINT"));
+  process.on("SIGTERM", () => void shutdown("SIGTERM"));
+}
+
+await main();

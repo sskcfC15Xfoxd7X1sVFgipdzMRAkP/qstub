@@ -20,8 +20,13 @@ describe("worker delivery + receiver verification", () => {
       trace: null,
     };
 
-    const fakeFetch: typeof fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+    const fakeFetch = (async (input: Request | string | URL, init?: RequestInit) => {
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : input.url;
       const headers = new Headers(init?.headers);
       const body = init?.body ? new TextDecoder().decode(init.body as Uint8Array) : "";
       seen.url = url;
@@ -29,7 +34,7 @@ describe("worker delivery + receiver verification", () => {
       seen.body = body;
       seen.trace = headers.get("x-trace");
       return new Response("ok", { status: 200 });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     const id = newMessageId();
     const body = new TextEncoder().encode(JSON.stringify({ hello: "world" }));

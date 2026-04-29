@@ -18,10 +18,10 @@ describe("retries", () => {
     const db = openDb(":memory:");
     const logger = createLogger("error");
     let calls = 0;
-    const fakeFetch: typeof fetch = (async () => {
+    const fakeFetch = (async () => {
       calls += 1;
       return new Response("nope", { status: 500 });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     const id = newMessageId();
     db.insertMessage({
@@ -67,11 +67,11 @@ describe("retries", () => {
     const db = openDb(":memory:");
     const logger = createLogger("error");
     let calls = 0;
-    const fakeFetch: typeof fetch = (async () => {
+    const fakeFetch = (async () => {
       calls += 1;
       if (calls === 1) return new Response("err", { status: 500 });
       return new Response("ok", { status: 200 });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     const id = newMessageId();
     db.insertMessage({
