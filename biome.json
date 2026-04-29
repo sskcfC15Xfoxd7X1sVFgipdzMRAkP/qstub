@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "ignore": ["dist", "node_modules", ".qstub", "bun.lock", "bun.lockb"]
+    "ignore": ["dist", "node_modules", ".downstash", "bun.lock", "bun.lockb"]
   },
   "formatter": {
     "enabled": true,

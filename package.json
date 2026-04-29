@@ -1,10 +1,10 @@
 {
-  "name": "qstub",
+  "name": "downstash",
   "version": "0.1.0",
-  "description": "A local development server that mocks the QStash API for fast, offline testing.",
+  "description": "A local development server that mocks the Upstash QStash and Redis APIs for fast, offline testing.",
   "type": "module",
   "bin": {
-    "qstub": "./src/cli.ts"
+    "downstash": "./src/cli.ts"
   },
   "scripts": {
     "start": "bun src/cli.ts",
@@ -23,9 +23,9 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/sskcfC15Xfoxd7X1sVFgipdzMRAkP/qstub.git"
+    "url": "https://github.com/sskcfC15Xfoxd7X1sVFgipdzMRAkP/downstash.git"
   },
-  "keywords": ["qstash", "upstash", "mock", "local-development", "bun", "hono"],
+  "keywords": ["downstash", "qstash", "redis", "upstash", "mock", "local-development", "bun", "hono"],
   "dependencies": {
     "hono": "^4.6.14"
   },

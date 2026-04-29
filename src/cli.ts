@@ -117,22 +117,22 @@ function requireInt(name: string, value: string | undefined): number {
 }
 
 function printHelp(): void {
-  console.log(`qstub - local QStash-compatible dev server
+  console.log(`downstash - local Upstash-compatible dev server (QStash + Redis)
 
 usage:
-  qstub                            start the server (default port 8080)
-  qstub serve                      explicit serve subcommand
-  qstub reset                      truncate the messages table
-  qstub keys                       print signing keys for .env.local
-  qstub help                       show this help
+  downstash                        start the server (default port 8080)
+  downstash serve                  explicit serve subcommand
+  downstash reset                  truncate the messages table
+  downstash keys                   print signing keys and Redis config for .env.local
+  downstash help                   show this help
 
 flags:
-  --port <n>                       HTTP port (env: QSTUB_PORT, default 8080)
-  --db <path>                      SQLite db file (env: QSTUB_DB, default .qstub/db.sqlite)
-  --tick-ms <n>                    delivery loop interval (env: QSTUB_TICK_MS, default 250)
-  --current-signing-key <s>        override current key (env: QSTUB_CURRENT_SIGNING_KEY)
-  --next-signing-key <s>           override next key (env: QSTUB_NEXT_SIGNING_KEY)
-  --log-level <debug|info|warn|error>   log verbosity (env: QSTUB_LOG_LEVEL)
+  --port <n>                       HTTP port (env: DOWNSTASH_PORT, default 8080)
+  --db <path>                      SQLite db file (env: DOWNSTASH_DB, default .downstash/db.sqlite)
+  --tick-ms <n>                    delivery loop interval (env: DOWNSTASH_TICK_MS, default 250)
+  --current-signing-key <s>        override current key (env: DOWNSTASH_CURRENT_SIGNING_KEY)
+  --next-signing-key <s>           override next key (env: DOWNSTASH_NEXT_SIGNING_KEY)
+  --log-level <debug|info|warn|error>   log verbosity (env: DOWNSTASH_LOG_LEVEL)
   --quiet                          shorthand for --log-level=warn
 `);
 }
@@ -176,7 +176,7 @@ async function main(): Promise<void> {
   });
   worker.start();
 
-  logger.info("qstub listening", {
+  logger.info("downstash listening", {
     port: config.port,
     db: config.dbPath,
     tickMs: config.tickMs,

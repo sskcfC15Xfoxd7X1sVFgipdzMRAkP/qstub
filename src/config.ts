@@ -9,8 +9,8 @@ export interface Config {
   logLevel: LogLevel;
 }
 
-const DEFAULT_CURRENT_KEY = "sig_qstub_current_dev_key_do_not_use_in_prod";
-const DEFAULT_NEXT_KEY = "sig_qstub_next_dev_key_do_not_use_in_prod";
+const DEFAULT_CURRENT_KEY = "sig_downstash_current_dev_key_do_not_use_in_prod";
+const DEFAULT_NEXT_KEY = "sig_downstash_next_dev_key_do_not_use_in_prod";
 
 export interface ConfigOverrides {
   port?: number;
@@ -26,13 +26,14 @@ export function resolveConfig(
   env: Record<string, string | undefined> = process.env,
 ): Config {
   return {
-    port: overrides.port ?? parseIntOr(env.QSTUB_PORT, 8080),
-    dbPath: overrides.dbPath ?? env.QSTUB_DB ?? ".qstub/db.sqlite",
-    tickMs: overrides.tickMs ?? parseIntOr(env.QSTUB_TICK_MS, 250),
+    port: overrides.port ?? parseIntOr(env.DOWNSTASH_PORT, 8080),
+    dbPath: overrides.dbPath ?? env.DOWNSTASH_DB ?? ".downstash/db.sqlite",
+    tickMs: overrides.tickMs ?? parseIntOr(env.DOWNSTASH_TICK_MS, 250),
     currentSigningKey:
-      overrides.currentSigningKey ?? env.QSTUB_CURRENT_SIGNING_KEY ?? DEFAULT_CURRENT_KEY,
-    nextSigningKey: overrides.nextSigningKey ?? env.QSTUB_NEXT_SIGNING_KEY ?? DEFAULT_NEXT_KEY,
-    logLevel: overrides.logLevel ?? (env.QSTUB_LOG_LEVEL as LogLevel | undefined) ?? "info",
+      overrides.currentSigningKey ?? env.DOWNSTASH_CURRENT_SIGNING_KEY ?? DEFAULT_CURRENT_KEY,
+    nextSigningKey:
+      overrides.nextSigningKey ?? env.DOWNSTASH_NEXT_SIGNING_KEY ?? DEFAULT_NEXT_KEY,
+    logLevel: overrides.logLevel ?? (env.DOWNSTASH_LOG_LEVEL as LogLevel | undefined) ?? "info",
   };
 }
 

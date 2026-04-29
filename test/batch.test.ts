@@ -22,7 +22,7 @@ describe("batch route", () => {
   test("rejects requests with no Authorization", async () => {
     const { app } = fresh();
     const res = await app.fetch(
-      new Request("http://qstub/v2/batch", {
+      new Request("http://downstash/v2/batch", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: "[]",
@@ -34,7 +34,7 @@ describe("batch route", () => {
   test("rejects non-array body", async () => {
     const { app } = fresh();
     const res = await app.fetch(
-      new Request("http://qstub/v2/batch", {
+      new Request("http://downstash/v2/batch", {
         method: "POST",
         headers: { authorization: "Bearer dev", "content-type": "application/json" },
         body: "{}",
@@ -46,7 +46,7 @@ describe("batch route", () => {
   test("empty batch returns empty array", async () => {
     const { app } = fresh();
     const res = await app.fetch(
-      new Request("http://qstub/v2/batch", {
+      new Request("http://downstash/v2/batch", {
         method: "POST",
         headers: { authorization: "Bearer dev", "content-type": "application/json" },
         body: "[]",
@@ -58,7 +58,7 @@ describe("batch route", () => {
 
   test("@upstash/qstash Client batchJSON inserts one row per item", async () => {
     const { db, app } = fresh();
-    const client = new Client({ baseUrl: "http://qstub", token: "dev" });
+    const client = new Client({ baseUrl: "http://downstash", token: "dev" });
     const realFetch = global.fetch;
     global.fetch = makeFetch(app);
 
@@ -90,7 +90,7 @@ describe("batch route", () => {
   test("rejects item with missing destination", async () => {
     const { app } = fresh();
     const res = await app.fetch(
-      new Request("http://qstub/v2/batch", {
+      new Request("http://downstash/v2/batch", {
         method: "POST",
         headers: { authorization: "Bearer dev", "content-type": "application/json" },
         body: JSON.stringify([{ headers: {}, body: "hi" }]),
@@ -104,7 +104,7 @@ describe("batch route", () => {
   test("upstash-forward-* headers in batch items are stripped and forwarded", async () => {
     const { db, app } = fresh();
     const res = await app.fetch(
-      new Request("http://qstub/v2/batch", {
+      new Request("http://downstash/v2/batch", {
         method: "POST",
         headers: { authorization: "Bearer dev", "content-type": "application/json" },
         body: JSON.stringify([
