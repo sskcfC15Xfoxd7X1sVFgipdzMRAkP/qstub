@@ -120,14 +120,11 @@ describe("POST /pipeline", () => {
     await app.fetch(req("http://downstash/", { body: ["LPUSH", "l", "a"] }));
     const res = await app.fetch(
       req("http://downstash/pipeline", {
-        body: [
-          ["GET", "l"],
-          ["PING"],
-        ],
+        body: [["GET", "l"], ["PING"]],
       }),
     );
     expect(res.status).toBe(200);
-    const json = (await res.json()) as ({ result?: unknown; error?: string })[];
+    const json = (await res.json()) as { result?: unknown; error?: string }[];
     expect(json[0]!.error).toMatch(/WRONGTYPE/);
     expect(json[1]).toEqual({ result: "PONG" });
   });
@@ -154,10 +151,7 @@ describe("POST /multi-exec", () => {
     await app.fetch(req("http://downstash/", { body: ["LPUSH", "l", "a"] }));
     const res = await app.fetch(
       req("http://downstash/multi-exec", {
-        body: [
-          ["GET", "l"],
-          ["PING"],
-        ],
+        body: [["GET", "l"], ["PING"]],
       }),
     );
     expect(res.status).toBe(400);
@@ -171,18 +165,14 @@ describe("URL-path commands", () => {
     const { app } = fresh();
     await app.fetch(req("http://downstash/", { body: ["SET", "mykey", "myval"] }));
 
-    const res = await app.fetch(
-      req("http://downstash/get/mykey", { method: "GET" }),
-    );
+    const res = await app.fetch(req("http://downstash/get/mykey", { method: "GET" }));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ result: "myval" });
   });
 
   test("POST /set/:key/:value", async () => {
     const { app } = fresh();
-    const res = await app.fetch(
-      req("http://downstash/set/foo/bar"),
-    );
+    const res = await app.fetch(req("http://downstash/set/foo/bar"));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ result: "OK" });
 
@@ -203,9 +193,7 @@ describe("URL-path commands", () => {
 
   test("no-arg commands like PING", async () => {
     const { app } = fresh();
-    const res = await app.fetch(
-      req("http://downstash/ping", { method: "GET" }),
-    );
+    const res = await app.fetch(req("http://downstash/ping", { method: "GET" }));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ result: "PONG" });
   });
@@ -252,14 +240,11 @@ describe("QStash routes still work", () => {
   test("publish endpoint", async () => {
     const { app } = fresh();
     const res = await app.fetch(
-      new Request(
-        `http://downstash/v2/publish/${encodeURIComponent("http://localhost:3000/x")}`,
-        {
-          method: "POST",
-          headers: { authorization: "Bearer anything" },
-          body: "{}",
-        },
-      ),
+      new Request(`http://downstash/v2/publish/${encodeURIComponent("http://localhost:3000/x")}`, {
+        method: "POST",
+        headers: { authorization: "Bearer anything" },
+        body: "{}",
+      }),
     );
     expect(res.status).toBe(200);
     const json = (await res.json()) as { messageId: string };

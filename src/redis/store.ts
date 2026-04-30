@@ -125,19 +125,9 @@ export interface RedisStore {
   zrank(key: string, member: string): number | null;
   zrevrank(key: string, member: string): number | null;
   zrange(key: string, start: number, stop: number, withScores?: boolean): string[];
-  zrangebyscore(
-    key: string,
-    min: string,
-    max: string,
-    opts?: ZRangeByScoreOptions,
-  ): string[];
+  zrangebyscore(key: string, min: string, max: string, opts?: ZRangeByScoreOptions): string[];
   zrevrange(key: string, start: number, stop: number, withScores?: boolean): string[];
-  zrevrangebyscore(
-    key: string,
-    max: string,
-    min: string,
-    opts?: ZRangeByScoreOptions,
-  ): string[];
+  zrevrangebyscore(key: string, max: string, min: string, opts?: ZRangeByScoreOptions): string[];
   zcard(key: string): number;
   zcount(key: string, min: string, max: string): number;
   zincrby(key: string, increment: number, member: string): string;
@@ -252,11 +242,7 @@ export function createRedisStore(): RedisStore {
     return index < 0 ? Math.max(0, len + index) : index;
   }
 
-  function scanIterable(
-    items: string[],
-    cursor: number,
-    opts?: ScanOptions,
-  ): [number, string[]] {
+  function scanIterable(items: string[], cursor: number, opts?: ScanOptions): [number, string[]] {
     const count = opts?.count ?? 10;
     const pattern = opts?.match ? globToRegex(opts.match) : null;
     const results: string[] = [];

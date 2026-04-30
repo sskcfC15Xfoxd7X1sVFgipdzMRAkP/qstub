@@ -92,7 +92,9 @@ describe("string commands", () => {
   test("wrong arg count", () => {
     const s = fresh();
     expect(exec(s, "GET")).toEqual({ error: "ERR wrong number of arguments for 'get' command" });
-    expect(exec(s, "SET", "k")).toEqual({ error: "ERR wrong number of arguments for 'set' command" });
+    expect(exec(s, "SET", "k")).toEqual({
+      error: "ERR wrong number of arguments for 'set' command",
+    });
   });
 });
 
