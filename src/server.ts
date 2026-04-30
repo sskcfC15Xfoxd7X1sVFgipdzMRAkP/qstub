@@ -1,16 +1,20 @@
 import { Hono } from "hono";
 import type { Db } from "./db.ts";
 import type { Logger } from "./logger.ts";
+import type { RedisStore } from "./redis/store.ts";
 import { healthRoute } from "./routes/health.ts";
 import { messagesRoute } from "./routes/messages.ts";
 import { publishRoute } from "./routes/publish.ts";
+import { redisRoute } from "./routes/redis.ts";
 
 export interface ServerDeps {
   db: Db;
   logger: Logger;
+  redisStore?: RedisStore;
+  redisToken?: string;
 }
 
-export function createServer({ db, logger }: ServerDeps): Hono {
+export function createServer({ db, logger, redisStore, redisToken }: ServerDeps): Hono {
   const app = new Hono();
   app.onError((err, c) => {
     logger.error("unhandled server error", { error: String(err) });
@@ -20,6 +24,10 @@ export function createServer({ db, logger }: ServerDeps): Hono {
   app.route("/", healthRoute());
   app.route("/", publishRoute({ db, logger }));
   app.route("/", messagesRoute({ db }));
+
+  if (redisStore) {
+    app.route("/", redisRoute({ store: redisStore, logger, redisToken: redisToken ?? "dev" }));
+  }
 
   return app;
 }

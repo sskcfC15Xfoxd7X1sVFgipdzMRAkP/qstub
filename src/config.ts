@@ -7,6 +7,7 @@ export interface Config {
   currentSigningKey: string;
   nextSigningKey: string;
   logLevel: LogLevel;
+  redisToken: string;
 }
 
 const DEFAULT_CURRENT_KEY = "sig_downstash_current_dev_key_do_not_use_in_prod";
@@ -19,6 +20,7 @@ export interface ConfigOverrides {
   currentSigningKey?: string;
   nextSigningKey?: string;
   logLevel?: LogLevel;
+  redisToken?: string;
 }
 
 export function resolveConfig(
@@ -34,6 +36,7 @@ export function resolveConfig(
     nextSigningKey:
       overrides.nextSigningKey ?? env.DOWNSTASH_NEXT_SIGNING_KEY ?? DEFAULT_NEXT_KEY,
     logLevel: overrides.logLevel ?? (env.DOWNSTASH_LOG_LEVEL as LogLevel | undefined) ?? "info",
+    redisToken: overrides.redisToken ?? env.DOWNSTASH_REDIS_TOKEN ?? "dev",
   };
 }
 
