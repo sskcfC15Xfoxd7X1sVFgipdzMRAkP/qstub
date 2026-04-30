@@ -2,6 +2,7 @@
 import { type ConfigOverrides, type LogLevel, resolveConfig } from "./config.ts";
 import { openDb } from "./db.ts";
 import { createLogger } from "./logger.ts";
+import { createRedisStore } from "./redis/store.ts";
 import { createServer } from "./server.ts";
 import { createWorker } from "./worker/loop.ts";
 
@@ -18,6 +19,7 @@ const VALUE_FLAGS = new Set([
   "current-signing-key",
   "next-signing-key",
   "log-level",
+  "redis-token",
 ]);
 
 function parseArgs(argv: string[]): ParsedArgs {
@@ -79,6 +81,9 @@ function parseArgs(argv: string[]): ParsedArgs {
       case "log-level":
         overrides.logLevel = requireValue(name, value) as LogLevel;
         break;
+      case "redis-token":
+        overrides.redisToken = requireValue(name, value);
+        break;
       case "quiet":
         quiet = true;
         break;
@@ -132,6 +137,7 @@ flags:
   --tick-ms <n>                    delivery loop interval (env: DOWNSTASH_TICK_MS, default 250)
   --current-signing-key <s>        override current key (env: DOWNSTASH_CURRENT_SIGNING_KEY)
   --next-signing-key <s>           override next key (env: DOWNSTASH_NEXT_SIGNING_KEY)
+  --redis-token <s>                Redis auth token (env: DOWNSTASH_REDIS_TOKEN, default "dev")
   --log-level <debug|info|warn|error>   log verbosity (env: DOWNSTASH_LOG_LEVEL)
   --quiet                          shorthand for --log-level=warn
 `);
@@ -149,6 +155,8 @@ async function main(): Promise<void> {
   if (args.command === "keys") {
     console.log(`QSTASH_CURRENT_SIGNING_KEY=${config.currentSigningKey}`);
     console.log(`QSTASH_NEXT_SIGNING_KEY=${config.nextSigningKey}`);
+    console.log(`UPSTASH_REDIS_REST_URL=http://localhost:${config.port}`);
+    console.log(`UPSTASH_REDIS_REST_TOKEN=${config.redisToken}`);
     return;
   }
 
@@ -162,7 +170,8 @@ async function main(): Promise<void> {
 
   const logger = createLogger(config.logLevel);
   const db = openDb(config.dbPath);
-  const app = createServer({ db, logger });
+  const redisStore = createRedisStore();
+  const app = createServer({ db, logger, redisStore, redisToken: config.redisToken });
   const worker = createWorker({
     db,
     logger,
