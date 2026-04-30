@@ -1,17 +1,22 @@
 # downstash
 
-A local development server that mocks the [Upstash QStash](https://upstash.com/docs/qstash) API for fast, offline testing.
+A local development server that mocks [Upstash QStash](https://upstash.com/docs/qstash) and [Upstash Redis](https://upstash.com/docs/redis/overall/getstarted) for fast, offline testing.
 
-`downstash` runs on your laptop and speaks the same HTTP API as production QStash, so the official [`@upstash/qstash`](https://www.npmjs.com/package/@upstash/qstash) SDK keeps working with no code changes — point its `baseUrl` at `downstash` and you have a complete publish + signed-callback round-trip without an internet round-trip.
+`downstash` runs on your laptop and speaks the same HTTP APIs as production Upstash, so the official [`@upstash/qstash`](https://www.npmjs.com/package/@upstash/qstash) and [`@upstash/redis`](https://www.npmjs.com/package/@upstash/redis) SDKs keep working with no code changes — point them at `downstash` and get complete round-trips without an internet connection.
 
 ## Why
 
-Working with QStash locally is normally painful because QStash's servers can't reach `localhost`. The standard workaround is to expose your dev server through ngrok, update environment variables, and remember to undo all of that before committing. With `downstash`:
+Working with Upstash services locally is painful:
+
+- **QStash** can't reach `localhost` — you'd need ngrok, env var juggling, and remember to undo it all before committing.
+- **Upstash Redis** requires internet for every request — slow iteration, no offline dev, and test suites that hit a remote service.
+
+With `downstash`:
 
 - No tunnels. `downstash` is a process on your machine and can call `http://localhost:3000/...` directly.
-- No env shuffling per session — signing keys are stable defaults you put in `.env.local` once.
+- No env shuffling per session — signing keys and Redis tokens are stable defaults you put in `.env.local` once.
 - Works offline. Plane, train, hotel wifi — fine.
-- CI-friendly. Spin it up in a workflow step and run integration tests against a real signed-request pipeline.
+- CI-friendly. Spin it up in a workflow step and run integration tests against both QStash and Redis without external dependencies.
 
 ## Install
 
@@ -54,22 +59,29 @@ curl -X POST \
 
 ## Configure your app
 
-For any code already using `@upstash/qstash`, add this `.env.local` block:
+Add this `.env.local` block to wire up both QStash and Redis SDKs:
 
 ```env
+# QStash
 QSTASH_URL=http://localhost:8080
 QSTASH_TOKEN=dev
 QSTASH_CURRENT_SIGNING_KEY=sig_downstash_current_dev_key_do_not_use_in_prod
 QSTASH_NEXT_SIGNING_KEY=sig_downstash_next_dev_key_do_not_use_in_prod
+
+# Redis
+UPSTASH_REDIS_REST_URL=http://localhost:8080
+UPSTASH_REDIS_REST_TOKEN=dev
 ```
 
-Print the current signing keys at any time with:
+Print the current keys and Redis config at any time with:
 
 ```bash
 downstash keys
 ```
 
-The `Client` and `Receiver` constructors then work unchanged:
+### QStash usage
+
+The `Client` and `Receiver` constructors work unchanged:
 
 ```ts
 import { Client, Receiver } from "@upstash/qstash";
@@ -99,7 +111,49 @@ const ok = await receiver.verify({
 });
 ```
 
+### Redis usage
+
+The `@upstash/redis` SDK works unchanged:
+
+```ts
+import { Redis } from "@upstash/redis";
+
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+});
+
+await redis.set("user:1", { name: "Alice", role: "admin" });
+const user = await redis.get("user:1");
+
+await redis.lpush("queue", "task-1", "task-2");
+const task = await redis.rpop("queue");
+
+const pipe = redis.pipeline();
+pipe.incr("counter");
+pipe.get("counter");
+const results = await pipe.exec();
+```
+
+The Redis store is in-memory and resets when the server restarts. You can also use curl directly:
+
+```bash
+# Single command
+curl -X POST -H 'Authorization: Bearer dev' \
+  -d '["SET","mykey","myvalue"]' http://localhost:8080/
+
+# URL-path style
+curl -H 'Authorization: Bearer dev' http://localhost:8080/get/mykey
+
+# Pipeline
+curl -X POST -H 'Authorization: Bearer dev' \
+  -d '[["SET","a","1"],["SET","b","2"],["MGET","a","b"]]' \
+  http://localhost:8080/pipeline
+```
+
 ## Supported features
+
+### QStash
 
 | Capability | Status | Notes |
 |---|---|---|
@@ -116,6 +170,26 @@ const ok = await receiver.verify({
 | `GET /v2/messages/:id` / `DELETE /v2/messages/:id` | Implemented | Inspect or cancel pending messages |
 | `POST /v2/batch` | Implemented | Fan-out: each item becomes an independent pending message |
 | Schedules (cron), Queues, DLQ, URL Groups, Events log, Web console | Not yet | Reserved for v2+ |
+
+### Redis
+
+| Category | Commands |
+|---|---|
+| Strings | SET (EX/PX/NX/XX/EXAT/PXAT), GET, MSET, MGET, SETNX, SETEX, PSETEX, INCR, INCRBY, INCRBYFLOAT, DECR, DECRBY, APPEND, STRLEN, GETRANGE, SETRANGE, GETDEL, GETEX |
+| Keys | DEL, EXISTS, EXPIRE, EXPIREAT, PEXPIRE, PEXPIREAT, TTL, PTTL, PERSIST, RENAME, TYPE, KEYS, SCAN, UNLINK, DBSIZE, FLUSHDB, FLUSHALL, RANDOMKEY, COPY |
+| Hashes | HSET, HGET, HMSET, HMGET, HGETALL, HDEL, HEXISTS, HLEN, HKEYS, HVALS, HINCRBY, HINCRBYFLOAT, HSETNX, HSCAN |
+| Lists | LPUSH, RPUSH, LPOP, RPOP, LRANGE, LLEN, LINDEX, LSET, LINSERT, LREM, LTRIM |
+| Sets | SADD, SREM, SMEMBERS, SISMEMBER, SCARD, SPOP, SRANDMEMBER, SUNION, SINTER, SDIFF, SUNIONSTORE, SINTERSTORE, SDIFFSTORE, SSCAN |
+| Sorted Sets | ZADD, ZREM, ZSCORE, ZRANK, ZREVRANK, ZRANGE, ZRANGEBYSCORE, ZREVRANGE, ZREVRANGEBYSCORE, ZCARD, ZCOUNT, ZINCRBY, ZPOPMIN, ZPOPMAX, ZUNIONSTORE, ZINTERSTORE, ZSCAN |
+| Utility | PING, ECHO, TIME |
+
+| API Endpoint | Description |
+|---|---|
+| `POST /` | Single command — body: `["SET","k","v"]` → `{"result":"OK"}` |
+| `POST /pipeline` | Batch — body: `[["SET","k","v"],["GET","k"]]` → `[{"result":"OK"},{"result":"v"}]` |
+| `POST /multi-exec` | Atomic transaction (same format as pipeline) |
+| `GET\|POST /:command/:args...` | URL-path style — e.g. `/get/mykey` |
+| `Upstash-Encoding: base64` | Base64-encodes all string values in responses |
 
 ## Inspecting state
 
@@ -140,7 +214,7 @@ The SQLite database lives at `./.downstash/db.sqlite` by default. Override with 
 downstash                        start the server (default port 8080)
 downstash serve                  explicit serve subcommand
 downstash reset                  truncate the messages table
-downstash keys                   print signing keys for .env.local
+downstash keys                   print signing keys and Redis config for .env.local
 downstash help                   show this help
 
 flags:
@@ -149,6 +223,7 @@ flags:
   --tick-ms <n>                  delivery loop interval             (env: DOWNSTASH_TICK_MS,         default 250)
   --current-signing-key <s>      override current key               (env: DOWNSTASH_CURRENT_SIGNING_KEY)
   --next-signing-key <s>         override next key                  (env: DOWNSTASH_NEXT_SIGNING_KEY)
+  --redis-token <s>              Redis auth token                   (env: DOWNSTASH_REDIS_TOKEN,     default "dev")
   --log-level <level>            debug | info | warn | error       (env: DOWNSTASH_LOG_LEVEL)
   --quiet                        shorthand for --log-level=warn
 ```
@@ -182,8 +257,9 @@ Flags always win over env vars.
 ## Limitations
 
 - Single process per developer. Not for shared/staging use.
-- The bearer token is not validated against any registry — any non-empty `Authorization: Bearer <anything>` is accepted.
-- `downstash` mirrors QStash's wire shape closely but is not a perfect bug-for-bug clone of production. File issues if your code path depends on a corner that we don't yet match.
+- The QStash bearer token is not validated against any registry — any non-empty `Authorization: Bearer <anything>` is accepted. The Redis token is validated against the configured `--redis-token` (default `"dev"`).
+- The Redis store is in-memory only — data does not persist across server restarts. QStash messages are persisted in SQLite.
+- `downstash` mirrors Upstash's wire shape closely but is not a perfect bug-for-bug clone of production. File issues if your code path depends on a corner that we don't yet match.
 
 ## License
 
