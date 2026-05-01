@@ -1,0 +1,1135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>downstash — your local development sidekick</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" />
+<style>
+  :root{
+    --bg: #0a0814;
+    --bg-2: #0f0c1c;
+    --panel: #14112a;
+    --panel-2: #1b1734;
+    --line: rgba(155, 130, 255, 0.10);
+    --line-strong: rgba(155, 130, 255, 0.20);
+    --text: #ECE7FA;
+    --muted: #9890B8;
+    --dim: #6E6791;
+    --accent: #8B5CF6;        /* primary purple */
+    --accent-2: #B794F6;       /* lighter */
+    --accent-deep: #6D3DF0;    /* deeper for shadows */
+    --green: oklch(0.78 0.15 155);
+    --amber: oklch(0.82 0.13 75);
+    --pink:  oklch(0.74 0.18 350);
+    --radius: 14px;
+    --mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  *{ box-sizing: border-box; }
+  html, body{ margin:0; padding:0; }
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    line-height: 1.5;
+  }
+  a{ color: inherit; }
+  ::selection{ background: var(--accent); color:#fff; }
+
+  /* ---------- background fx ---------- */
+  .bg-fx{
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(1100px 600px at 50% -10%, rgba(139,92,246,0.30), transparent 65%),
+      radial-gradient(900px 500px at 85% 25%, rgba(109,61,240,0.18), transparent 60%),
+      radial-gradient(800px 600px at 10% 60%, rgba(139,92,246,0.10), transparent 60%);
+  }
+  .bg-grid{
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image:
+      linear-gradient(to right, rgba(155,130,255,0.06) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(155,130,255,0.06) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, #000 30%, transparent 75%);
+  }
+  main, header, footer{ position: relative; z-index: 1; }
+
+  /* ---------- nav ---------- */
+  .nav{
+    position: sticky; top: 0; z-index: 50;
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    background: rgba(10, 8, 20, 0.55);
+    border-bottom: 1px solid var(--line);
+  }
+  .nav-inner{
+    max-width: 1200px; margin: 0 auto;
+    display: flex; align-items: center; gap: 32px;
+    padding: 16px 32px;
+  }
+  .brand{
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 600; letter-spacing: -0.02em; font-size: 17px;
+  }
+  .brand-mark{
+    width: 28px; height: 28px; border-radius: 7px;
+    background:
+      radial-gradient(circle at 30% 25%, rgba(255,255,255,0.18), transparent 50%),
+      linear-gradient(140deg, var(--accent) 0%, var(--accent-deep) 100%);
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.06) inset, 0 6px 20px -6px rgba(139,92,246,0.7);
+    display: grid; place-items: center;
+    color: white; font-family: var(--mono); font-size: 14px; font-weight: 600;
+  }
+  .nav-links{
+    display: flex; gap: 26px; align-items: center;
+    font-size: 14px; color: var(--muted);
+    margin-left: 12px;
+  }
+  .nav-links a{ text-decoration: none; transition: color .15s; }
+  .nav-links a:hover{ color: var(--text); }
+  .nav-spacer{ flex: 1; }
+  .nav-cta{
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 14px; border-radius: 8px;
+    background: rgba(139,92,246,0.12);
+    border: 1px solid rgba(139,92,246,0.30);
+    color: var(--text); font-size: 13.5px; font-weight: 500;
+    text-decoration: none;
+    transition: all .15s;
+  }
+  .nav-cta:hover{ background: rgba(139,92,246,0.22); border-color: rgba(139,92,246,0.45); }
+  .nav-cta svg{ width: 14px; height: 14px; }
+  .nav-pill{
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+    padding: 4px 8px; border-radius: 999px;
+    border: 1px solid var(--line);
+    background: rgba(155,130,255,0.04);
+  }
+
+  /* ---------- container ---------- */
+  .wrap{ max-width: 1200px; margin: 0 auto; padding: 0 32px; }
+
+  /* ---------- hero ---------- */
+  .hero{
+    padding: 100px 0 80px;
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    gap: 56px;
+    align-items: center;
+  }
+  .eyebrow{
+    display: inline-flex; align-items: center; gap: 10px;
+    font-family: var(--mono); font-size: 12px;
+    color: var(--accent-2);
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(139,92,246,0.28);
+    background: rgba(139,92,246,0.08);
+    margin-bottom: 22px;
+  }
+  .eyebrow .dot{
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent-2);
+    box-shadow: 0 0 10px var(--accent);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse{ 50%{ opacity:.4; } }
+
+  h1{
+    font-size: clamp(40px, 5.4vw, 68px);
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+    margin: 0 0 22px;
+    font-weight: 600;
+  }
+  h1 .accent{
+    background: linear-gradient(120deg, var(--accent-2) 0%, var(--accent) 60%, #d6c2ff 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .lede{
+    font-size: 18px; color: var(--muted);
+    max-width: 540px; margin: 0 0 28px;
+    text-wrap: pretty;
+  }
+  .hero-ctas{ display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn{
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 18px; border-radius: 10px;
+    font-size: 14.5px; font-weight: 500;
+    text-decoration: none;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all .15s;
+    font-family: inherit;
+  }
+  .btn-primary{
+    background: linear-gradient(180deg, var(--accent) 0%, var(--accent-deep) 100%);
+    color: white;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.08) inset, 0 10px 30px -10px rgba(139,92,246,0.7);
+  }
+  .btn-primary:hover{ transform: translateY(-1px); box-shadow: 0 0 0 1px rgba(255,255,255,0.12) inset, 0 14px 34px -10px rgba(139,92,246,0.8); }
+  .btn-ghost{
+    background: rgba(255,255,255,0.03);
+    border-color: var(--line-strong);
+    color: var(--text);
+  }
+  .btn-ghost:hover{ background: rgba(255,255,255,0.06); border-color: rgba(155,130,255,0.35); }
+  .btn svg{ width: 16px; height: 16px; }
+
+  .hero-meta{
+    display: flex; gap: 22px; margin-top: 32px;
+    font-family: var(--mono); font-size: 12.5px; color: var(--dim);
+  }
+  .hero-meta b{ color: var(--text); font-weight: 500; }
+
+  /* ---------- terminal ---------- */
+  .terminal{
+    position: relative;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #161229 0%, #110d22 100%);
+    border: 1px solid var(--line-strong);
+    box-shadow:
+      0 0 0 1px rgba(139,92,246,0.12),
+      0 30px 80px -30px rgba(109,61,240,0.55),
+      0 60px 120px -40px rgba(0,0,0,0.6);
+    overflow: hidden;
+  }
+  .terminal::before{
+    content: ""; position: absolute; inset: -1px;
+    border-radius: 15px;
+    background: linear-gradient(160deg, rgba(139,92,246,0.5), transparent 35%, transparent 65%, rgba(139,92,246,0.3));
+    z-index: -1;
+    filter: blur(1px);
+  }
+  .term-bar{
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line);
+    background: rgba(0,0,0,0.25);
+  }
+  .term-bar .lights{ display: flex; gap: 6px; }
+  .term-bar .lights span{
+    width: 11px; height: 11px; border-radius: 50%;
+    background: rgba(255,255,255,0.10);
+  }
+  .term-bar .title{
+    font-family: var(--mono); font-size: 12px; color: var(--dim);
+    margin-left: auto; margin-right: auto;
+    letter-spacing: 0.02em;
+  }
+  .term-body{
+    padding: 18px 20px 22px;
+    font-family: var(--mono); font-size: 13px;
+    color: #c9c0e8; line-height: 1.65;
+    min-height: 320px;
+    white-space: pre-wrap;
+  }
+  .term-body .prompt{ color: var(--accent-2); }
+  .term-body .cmd{ color: #f3eeff; }
+  .term-body .ok{ color: oklch(0.82 0.15 155); }
+  .term-body .info{ color: oklch(0.78 0.13 220); }
+  .term-body .warn{ color: oklch(0.85 0.13 75); }
+  .term-body .dim{ color: var(--dim); }
+  .term-body .key{ color: var(--accent-2); }
+  .term-body .str{ color: oklch(0.82 0.13 145); }
+  .cursor{
+    display: inline-block; width: 8px; height: 14px; vertical-align: -2px;
+    background: var(--accent-2); margin-left: 2px;
+    animation: blink 1s steps(2) infinite;
+  }
+  @keyframes blink{ 50%{ opacity: 0; } }
+
+  /* ---------- generic section ---------- */
+  section{ padding: 100px 0; position: relative; }
+  .section-head{ max-width: 760px; margin: 0 auto 56px; text-align: center; }
+  .section-eyebrow{
+    font-family: var(--mono); font-size: 12px;
+    color: var(--accent-2); letter-spacing: 0.08em; text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  h2{
+    font-size: clamp(32px, 3.6vw, 48px);
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    margin: 0 0 16px;
+    font-weight: 600;
+  }
+  .section-sub{
+    color: var(--muted); font-size: 17px; margin: 0;
+    text-wrap: pretty;
+  }
+
+  /* ---------- why grid ---------- */
+  .why{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .why-card{
+    padding: 28px;
+    border-radius: var(--radius);
+    background: linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0.01) 100%);
+    border: 1px solid var(--line);
+    position: relative;
+    overflow: hidden;
+  }
+  .why-card::after{
+    content: ""; position: absolute; inset: 0;
+    background: radial-gradient(400px 200px at var(--mx, 50%) var(--my, 0%), rgba(139,92,246,0.10), transparent 60%);
+    opacity: 0; transition: opacity .25s;
+    pointer-events: none;
+  }
+  .why-card:hover::after{ opacity: 1; }
+  .why-icon{
+    width: 38px; height: 38px; border-radius: 10px;
+    display: grid; place-items: center;
+    background: rgba(139,92,246,0.12);
+    border: 1px solid rgba(139,92,246,0.28);
+    color: var(--accent-2);
+    margin-bottom: 18px;
+  }
+  .why-icon svg{ width: 18px; height: 18px; }
+  .why-card h3{ font-size: 17px; margin: 0 0 8px; font-weight: 600; letter-spacing: -0.01em; }
+  .why-card p{ color: var(--muted); margin: 0; font-size: 14px; line-height: 1.55; }
+
+  /* ---------- code tabs ---------- */
+  .codeblock{
+    border-radius: 14px;
+    background: linear-gradient(180deg, #14102a 0%, #0f0c22 100%);
+    border: 1px solid var(--line-strong);
+    overflow: hidden;
+    box-shadow: 0 30px 60px -30px rgba(109,61,240,0.4), 0 0 0 1px rgba(139,92,246,0.08);
+  }
+  .tabs{
+    display: flex; align-items: center;
+    border-bottom: 1px solid var(--line);
+    background: rgba(0,0,0,0.2);
+    padding: 0 8px;
+    gap: 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar{ display: none; }
+  .tab{
+    background: transparent; border: 0; cursor: pointer;
+    padding: 12px 14px;
+    font-family: var(--mono); font-size: 12.5px; color: var(--dim);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    white-space: nowrap;
+    transition: all .15s;
+  }
+  .tab:hover{ color: var(--muted); }
+  .tab.active{ color: var(--text); border-color: var(--accent); }
+  .tab-copy{
+    margin-left: auto;
+    background: transparent; border: 0; cursor: pointer;
+    color: var(--dim); font-family: var(--mono); font-size: 11.5px;
+    padding: 8px 12px;
+    display: inline-flex; align-items: center; gap: 6px;
+    border-radius: 6px;
+    transition: all .15s;
+  }
+  .tab-copy:hover{ color: var(--text); background: rgba(255,255,255,0.04); }
+  .tab-copy svg{ width: 13px; height: 13px; }
+  .tab-copy.copied{ color: oklch(0.82 0.15 155); }
+
+  pre.code{
+    margin: 0; padding: 22px 24px;
+    font-family: var(--mono); font-size: 13px;
+    color: #d8d2ee; line-height: 1.65;
+    overflow-x: auto;
+    min-height: 280px;
+  }
+  pre.code .kw{ color: oklch(0.78 0.16 320); }
+  pre.code .fn{ color: var(--accent-2); }
+  pre.code .str{ color: oklch(0.82 0.13 145); }
+  pre.code .num{ color: oklch(0.84 0.13 75); }
+  pre.code .com{ color: var(--dim); font-style: italic; }
+  pre.code .var{ color: #efe9ff; }
+  pre.code .pun{ color: #8d85b3; }
+  pre.code .env{ color: oklch(0.78 0.13 220); }
+
+  /* ---------- features grid ---------- */
+  .feat-row{
+    display: grid; grid-template-columns: 1.1fr 1fr; gap: 24px;
+    margin-bottom: 24px;
+  }
+  .feat{
+    padding: 32px;
+    border-radius: var(--radius);
+    background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
+    border: 1px solid var(--line);
+    position: relative;
+    overflow: hidden;
+  }
+  .feat .badge{
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--mono); font-size: 11.5px;
+    color: var(--accent-2);
+    padding: 4px 10px; border-radius: 999px;
+    background: rgba(139,92,246,0.10);
+    border: 1px solid rgba(139,92,246,0.25);
+    margin-bottom: 16px;
+  }
+  .feat h3{ font-size: 24px; margin: 0 0 10px; font-weight: 600; letter-spacing: -0.02em; }
+  .feat p{ color: var(--muted); margin: 0 0 22px; font-size: 14.5px; }
+  .feat-list{ display: grid; grid-template-columns: 1fr 1fr; gap: 8px 20px; }
+  .feat-list .item{
+    font-family: var(--mono); font-size: 12px;
+    color: var(--muted); display: flex; align-items: center; gap: 8px;
+  }
+  .feat-list .item svg{
+    width: 12px; height: 12px; color: var(--accent-2); flex: 0 0 auto;
+  }
+
+  /* commands picker - feat right side visualization */
+  .cmd-cloud{
+    display: flex; flex-wrap: wrap; gap: 6px;
+    padding: 24px;
+    align-content: flex-start;
+    height: 100%;
+  }
+  .cmd-chip{
+    font-family: var(--mono); font-size: 11.5px;
+    padding: 5px 10px; border-radius: 6px;
+    background: rgba(139,92,246,0.06);
+    border: 1px solid rgba(139,92,246,0.15);
+    color: var(--muted);
+    transition: all .2s;
+  }
+  .cmd-chip.hi{
+    background: rgba(139,92,246,0.18);
+    border-color: rgba(139,92,246,0.45);
+    color: #f3edff;
+  }
+
+  /* qstash schema viz */
+  .qstash-viz{
+    padding: 26px;
+    height: 100%;
+    display: flex; flex-direction: column; gap: 14px;
+    font-family: var(--mono); font-size: 12.5px;
+    justify-content: center;
+  }
+  .qstash-step{
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 14px; border-radius: 10px;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid var(--line);
+  }
+  .qstash-step .num{
+    width: 22px; height: 22px; border-radius: 6px;
+    background: rgba(139,92,246,0.18);
+    border: 1px solid rgba(139,92,246,0.35);
+    color: var(--accent-2);
+    display: grid; place-items: center;
+    font-size: 11px; font-weight: 600;
+  }
+  .qstash-step .label{ color: var(--text); }
+  .qstash-step .meta{ color: var(--dim); margin-left: auto; font-size: 11px; }
+  .qstash-arrow{ color: var(--dim); text-align: center; font-size: 11px; }
+
+  /* ---------- comparison ---------- */
+  .compare{
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+    max-width: 980px; margin: 0 auto;
+  }
+  .compare-card{
+    padding: 28px;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,0.015);
+  }
+  .compare-card.bad{ }
+  .compare-card.good{
+    border-color: rgba(139,92,246,0.35);
+    background:
+      radial-gradient(400px 200px at 50% 0%, rgba(139,92,246,0.10), transparent 60%),
+      rgba(139,92,246,0.03);
+  }
+  .compare-head{
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 18px;
+    font-size: 14px; color: var(--muted);
+    font-family: var(--mono);
+  }
+  .compare-head .tag{
+    padding: 3px 8px; border-radius: 4px;
+    font-size: 11px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--line);
+  }
+  .compare-head.good .tag{
+    background: rgba(139,92,246,0.15);
+    border-color: rgba(139,92,246,0.35);
+    color: var(--accent-2);
+  }
+  .compare ul{
+    list-style: none; padding: 0; margin: 0;
+    display: grid; gap: 12px;
+  }
+  .compare li{
+    display: flex; gap: 12px; align-items: flex-start;
+    font-size: 14px; color: var(--text);
+  }
+  .compare li .ico{
+    flex: 0 0 auto; width: 18px; height: 18px;
+    border-radius: 5px; display: grid; place-items: center;
+    margin-top: 1px;
+  }
+  .compare .bad .ico{ background: rgba(255,90,120,0.10); color: oklch(0.74 0.18 20); }
+  .compare .good .ico{ background: rgba(139,92,246,0.15); color: var(--accent-2); }
+  .compare li .desc{ color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+  /* ---------- signing ---------- */
+  .signing{
+    display: grid; grid-template-columns: 1fr 1fr; gap: 32px;
+    align-items: center;
+    max-width: 1100px; margin: 0 auto;
+  }
+  .jwt-box{
+    border-radius: 14px;
+    border: 1px solid var(--line-strong);
+    background: linear-gradient(180deg, #14112a 0%, #0e0b20 100%);
+    padding: 22px 24px;
+    font-family: var(--mono); font-size: 12.5px;
+    line-height: 1.7;
+    box-shadow: 0 0 0 1px rgba(139,92,246,0.10), 0 30px 80px -30px rgba(109,61,240,0.4);
+  }
+  .jwt-row{ display: flex; gap: 14px; align-items: baseline; }
+  .jwt-row .k{ color: var(--accent-2); width: 50px; flex: 0 0 auto; }
+  .jwt-row .v{ color: var(--text); }
+  .jwt-row .c{ color: var(--dim); margin-left: auto; font-size: 11px; }
+  .jwt-divider{
+    height: 1px; background: var(--line);
+    margin: 12px -10px;
+  }
+  .signing h3{
+    font-size: 28px; letter-spacing: -0.02em; font-weight: 600;
+    margin: 0 0 14px;
+  }
+  .signing p{ color: var(--muted); font-size: 15px; margin: 0 0 16px; }
+  .signing .keys{
+    font-family: var(--mono); font-size: 12px; color: var(--dim);
+    border-top: 1px solid var(--line);
+    padding-top: 14px;
+  }
+  .signing .keys span{ color: var(--accent-2); }
+
+  /* ---------- CLI ---------- */
+  .cli-grid{
+    max-width: 980px; margin: 0 auto;
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .cli-row{
+    display: flex; align-items: baseline; gap: 16px;
+    padding: 14px 18px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--line);
+  }
+  .cli-row code{
+    font-family: var(--mono); font-size: 13px;
+    color: var(--accent-2);
+    background: transparent;
+  }
+  .cli-row .desc{ color: var(--muted); font-size: 13px; margin-left: auto; text-align: right; }
+
+  /* ---------- footer ---------- */
+  footer{
+    border-top: 1px solid var(--line);
+    padding: 48px 0 56px;
+    margin-top: 60px;
+  }
+  .foot-inner{
+    display: flex; align-items: center; gap: 22px;
+    flex-wrap: wrap;
+  }
+  .foot-meta{
+    display: flex; gap: 18px;
+    font-family: var(--mono); font-size: 12px;
+    color: var(--dim);
+    margin-left: auto;
+  }
+  .foot-meta a{ color: var(--muted); text-decoration: none; }
+  .foot-meta a:hover{ color: var(--text); }
+
+  /* ---------- responsive ---------- */
+  @media (max-width: 960px){
+    .hero{ grid-template-columns: 1fr; padding: 60px 0 40px; }
+    .why{ grid-template-columns: 1fr; }
+    .feat-row{ grid-template-columns: 1fr; }
+    .signing{ grid-template-columns: 1fr; }
+    .compare{ grid-template-columns: 1fr; }
+    .cli-grid{ grid-template-columns: 1fr; }
+    .nav-links{ display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="bg-fx"></div>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a href="#" class="brand">
+      <div class="brand-mark">↓</div>
+      <span>downstash</span>
+      <span class="nav-pill">v0.1 · MIT</span>
+    </a>
+    <nav class="nav-links">
+      <a href="#why">Why</a>
+      <a href="#quickstart">Quick start</a>
+      <a href="#features">Features</a>
+      <a href="#signing">Signing</a>
+      <a href="#cli">CLI</a>
+    </nav>
+    <div class="nav-spacer"></div>
+    <a class="nav-cta" href="https://github.com/sskcfC15Xfoxd7X1sVFgipdzMRAkP/downstash" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.55v-1.93c-3.2.7-3.87-1.54-3.87-1.54-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.69 1.24 3.34.95.1-.74.4-1.24.72-1.53-2.55-.29-5.24-1.27-5.24-5.66 0-1.25.45-2.27 1.18-3.07-.12-.29-.51-1.46.11-3.04 0 0 .96-.31 3.15 1.17a10.97 10.97 0 0 1 5.74 0c2.19-1.48 3.15-1.17 3.15-1.17.62 1.58.23 2.75.11 3.04.74.8 1.18 1.82 1.18 3.07 0 4.4-2.69 5.36-5.25 5.65.41.36.78 1.06.78 2.13v3.16c0 .31.21.67.8.55C20.21 21.39 23.5 17.07 23.5 12 23.5 5.65 18.35.5 12 .5z"/></svg>
+      <span>Star on GitHub</span>
+      <span style="font-family:var(--mono); font-size:11px; color:var(--muted); padding:2px 6px; background:rgba(255,255,255,0.06); border-radius:4px;">★ 24</span>
+    </a>
+  </div>
+</header>
+
+<main>
+
+<!-- ===================== HERO ===================== -->
+<section class="hero wrap">
+  <div>
+    <div class="eyebrow"><span class="dot"></span> Open source · works offline</div>
+    <h1>Your local development<br/><span class="accent">sidekick</span> for Upstash.</h1>
+    <p class="lede">
+      <b style="color:var(--text); font-weight:500;">downstash</b> is a single binary that mocks
+      Upstash QStash and Upstash Redis on your laptop — same HTTP wire shape, same SDKs, zero internet.
+      Develop on planes. Run integration tests in CI without a credential.
+    </p>
+    <div class="hero-ctas">
+      <a class="btn btn-primary" href="#quickstart">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="8 6 16 12 8 18"/></svg>
+        Quick start
+      </a>
+      <a class="btn btn-ghost" href="https://github.com/sskcfC15Xfoxd7X1sVFgipdzMRAkP/downstash" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.55v-1.93c-3.2.7-3.87-1.54-3.87-1.54-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.69 1.24 3.34.95.1-.74.4-1.24.72-1.53-2.55-.29-5.24-1.27-5.24-5.66 0-1.25.45-2.27 1.18-3.07-.12-.29-.51-1.46.11-3.04 0 0 .96-.31 3.15 1.17a10.97 10.97 0 0 1 5.74 0c2.19-1.48 3.15-1.17 3.15-1.17.62 1.58.23 2.75.11 3.04.74.8 1.18 1.82 1.18 3.07 0 4.4-2.69 5.36-5.25 5.65.41.36.78 1.06.78 2.13v3.16c0 .31.21.67.8.55C20.21 21.39 23.5 17.07 23.5 12 23.5 5.65 18.35.5 12 .5z"/></svg>
+        View on GitHub
+      </a>
+    </div>
+    <div class="hero-meta">
+      <div><b>0</b> tunnels</div>
+      <div><b>0</b> credentials</div>
+      <div><b>~250ms</b> tick loop</div>
+      <div><b>SQLite</b> persistence</div>
+    </div>
+  </div>
+
+  <div class="terminal" aria-label="Live demo terminal">
+    <div class="term-bar">
+      <div class="lights"><span></span><span></span><span></span></div>
+      <div class="title">~/projects/my-app — downstash</div>
+    </div>
+    <div class="term-body" id="term"></div>
+  </div>
+</section>
+
+<!-- ===================== WHY ===================== -->
+<section id="why">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="section-eyebrow">Why downstash</div>
+      <h2>Local Upstash, without the workarounds.</h2>
+      <p class="section-sub">QStash can't reach <code style="font-family:var(--mono); color:var(--accent-2);">localhost</code>. Redis-over-HTTP needs internet for every request. We built the sidekick that closes both gaps.</p>
+    </div>
+
+    <div class="why">
+      <div class="why-card">
+        <div class="why-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h4l3-9 4 18 3-9h4"/></svg>
+        </div>
+        <h3>No tunnels.</h3>
+        <p>Skip ngrok, env var juggling, and the dance of remembering to undo it before you commit. downstash speaks plain <code style="font-family:var(--mono); color:var(--accent-2); font-size:12px;">http://localhost</code>.</p>
+      </div>
+      <div class="why-card">
+        <div class="why-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 12h6l3-8 3 16 3-12 2 4h3"/></svg>
+        </div>
+        <h3>Works offline.</h3>
+        <p>Plane, train, hotel wifi, blackout — fine. Your test suite stops depending on a remote service that can rate-limit, retry, or simply be down.</p>
+      </div>
+      <div class="why-card">
+        <div class="why-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c2.5 0 4.76 1.02 6.4 2.66"/><polyline points="21 4 21 9 16 9"/></svg>
+        </div>
+        <h3>CI-friendly.</h3>
+        <p>Spin it up in a workflow step. Run integration tests against QStash and Redis with no external dependency, no flaky network, no shared sandbox.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== COMPARISON ===================== -->
+<section style="padding-top:0;">
+  <div class="wrap">
+    <div class="compare">
+      <div class="compare-card bad">
+        <div class="compare-head">
+          <span class="tag">Before</span>
+          <span>The usual local dev loop</span>
+        </div>
+        <ul>
+          <li><span class="ico">✕</span><div><div>Spin up ngrok, copy URL, paste into env</div><div class="desc">Repeat every session. Don't forget to remove it.</div></div></li>
+          <li><span class="ico">✕</span><div><div>Hit a remote Redis for every test</div><div class="desc">Slow iteration, flaky CI, real latency in unit tests.</div></div></li>
+          <li><span class="ico">✕</span><div><div>Burn through QStash quota in dev</div><div class="desc">Real messages, real billing.</div></div></li>
+          <li><span class="ico">✕</span><div><div>No way to inspect or replay messages</div><div class="desc">Hope your logs are good.</div></div></li>
+        </ul>
+      </div>
+      <div class="compare-card good">
+        <div class="compare-head good">
+          <span class="tag">With downstash</span>
+          <span>One process, two services</span>
+        </div>
+        <ul>
+          <li><span class="ico">✓</span><div><div>Point your SDKs at <code style="font-family:var(--mono); color:var(--accent-2); font-size:12.5px;">localhost:8080</code></div><div class="desc">Same constructors, no code changes.</div></div></li>
+          <li><span class="ico">✓</span><div><div>In-memory Redis with full command coverage</div><div class="desc">Strings, hashes, lists, sets, sorted sets, pipelines.</div></div></li>
+          <li><span class="ico">✓</span><div><div>Real signed JWTs, verified by the Upstash SDK</div><div class="desc">Signing works exactly like production.</div></div></li>
+          <li><span class="ico">✓</span><div><div>Inspect any message with one curl</div><div class="desc"><code style="font-family:var(--mono); color:var(--accent-2); font-size:12.5px;">GET /v2/messages/:id</code> — state, retries, body.</div></div></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== QUICK START ===================== -->
+<section id="quickstart">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="section-eyebrow">Quick start</div>
+      <h2>Three commands. Two SDKs. Zero config drift.</h2>
+      <p class="section-sub">Install once, drop the same <code style="font-family:var(--mono); color:var(--accent-2);">.env.local</code> into every project, and your existing Upstash code keeps working untouched.</p>
+    </div>
+
+    <div class="codeblock" id="cb-install">
+      <div class="tabs">
+        <button class="tab active" data-tab="install">install.sh</button>
+        <button class="tab" data-tab="env">.env.local</button>
+        <button class="tab" data-tab="qstash">qstash.ts</button>
+        <button class="tab" data-tab="redis">redis.ts</button>
+        <button class="tab" data-tab="curl">curl</button>
+        <button class="tab-copy" id="copyBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+          <span>Copy</span>
+        </button>
+      </div>
+
+      <pre class="code" data-pane="install"><span class="com"># Requires Bun &gt;= 1.1.0</span>
+<span class="pun">$</span> git clone https://github.com/sskcfC15Xfoxd7X1sVFgipdzMRAkP/downstash
+<span class="pun">$</span> <span class="kw">cd</span> downstash
+<span class="pun">$</span> bun install
+<span class="pun">$</span> bun link            <span class="com"># makes the `downstash` command available globally</span>
+
+<span class="pun">$</span> downstash
+<span class="com">2026-04-29T12:00:00.000Z</span> <span class="fn">INFO</span>  downstash listening port=<span class="num">8080</span> db=.downstash/db.sqlite tickMs=<span class="num">250</span></pre>
+
+      <pre class="code" data-pane="env" hidden><span class="com"># QStash</span>
+<span class="env">QSTASH_URL</span>=<span class="str">http://localhost:8080</span>
+<span class="env">QSTASH_TOKEN</span>=<span class="str">dev</span>
+<span class="env">QSTASH_CURRENT_SIGNING_KEY</span>=<span class="str">sig_downstash_current_dev_key_do_not_use_in_prod</span>
+<span class="env">QSTASH_NEXT_SIGNING_KEY</span>=<span class="str">sig_downstash_next_dev_key_do_not_use_in_prod</span>
+
+<span class="com"># Redis</span>
+<span class="env">UPSTASH_REDIS_REST_URL</span>=<span class="str">http://localhost:8080</span>
+<span class="env">UPSTASH_REDIS_REST_TOKEN</span>=<span class="str">dev</span></pre>
+
+      <pre class="code" data-pane="qstash" hidden><span class="kw">import</span> <span class="pun">{</span> <span class="var">Client</span><span class="pun">,</span> <span class="var">Receiver</span> <span class="pun">}</span> <span class="kw">from</span> <span class="str">"@upstash/qstash"</span><span class="pun">;</span>
+
+<span class="kw">const</span> <span class="var">client</span> <span class="pun">=</span> <span class="kw">new</span> <span class="fn">Client</span><span class="pun">({</span>
+  <span class="var">baseUrl</span><span class="pun">:</span> <span class="var">process</span><span class="pun">.</span><span class="var">env</span><span class="pun">.</span><span class="env">QSTASH_URL</span><span class="pun">!,</span>
+  <span class="var">token</span><span class="pun">:</span> <span class="var">process</span><span class="pun">.</span><span class="var">env</span><span class="pun">.</span><span class="env">QSTASH_TOKEN</span><span class="pun">!,</span>
+<span class="pun">});</span>
+
+<span class="kw">await</span> <span class="var">client</span><span class="pun">.</span><span class="fn">publishJSON</span><span class="pun">({</span>
+  <span class="var">url</span><span class="pun">:</span> <span class="str">"http://localhost:3000/api/echo"</span><span class="pun">,</span>
+  <span class="var">body</span><span class="pun">:</span> <span class="pun">{</span> <span class="var">hello</span><span class="pun">:</span> <span class="str">"world"</span> <span class="pun">},</span>
+  <span class="var">delay</span><span class="pun">:</span> <span class="num">5</span><span class="pun">,</span>        <span class="com">// seconds</span>
+  <span class="var">retries</span><span class="pun">:</span> <span class="num">3</span><span class="pun">,</span>
+<span class="pun">});</span>
+
+<span class="com">// inside your route handler:</span>
+<span class="kw">const</span> <span class="var">receiver</span> <span class="pun">=</span> <span class="kw">new</span> <span class="fn">Receiver</span><span class="pun">({</span>
+  <span class="var">currentSigningKey</span><span class="pun">:</span> <span class="var">process</span><span class="pun">.</span><span class="var">env</span><span class="pun">.</span><span class="env">QSTASH_CURRENT_SIGNING_KEY</span><span class="pun">!,</span>
+  <span class="var">nextSigningKey</span><span class="pun">:</span> <span class="var">process</span><span class="pun">.</span><span class="var">env</span><span class="pun">.</span><span class="env">QSTASH_NEXT_SIGNING_KEY</span><span class="pun">!,</span>
+<span class="pun">});</span>
+<span class="kw">const</span> <span class="var">ok</span> <span class="pun">=</span> <span class="kw">await</span> <span class="var">receiver</span><span class="pun">.</span><span class="fn">verify</span><span class="pun">({</span> <span class="var">signature</span><span class="pun">,</span> <span class="var">body</span><span class="pun">,</span> <span class="var">url</span> <span class="pun">});</span></pre>
+
+      <pre class="code" data-pane="redis" hidden><span class="kw">import</span> <span class="pun">{</span> <span class="var">Redis</span> <span class="pun">}</span> <span class="kw">from</span> <span class="str">"@upstash/redis"</span><span class="pun">;</span>
+
+<span class="kw">const</span> <span class="var">redis</span> <span class="pun">=</span> <span class="kw">new</span> <span class="fn">Redis</span><span class="pun">({</span>
+  <span class="var">url</span><span class="pun">:</span> <span class="var">process</span><span class="pun">.</span><span class="var">env</span><span class="pun">.</span><span class="env">UPSTASH_REDIS_REST_URL</span><span class="pun">!,</span>
+  <span class="var">token</span><span class="pun">:</span> <span class="var">process</span><span class="pun">.</span><span class="var">env</span><span class="pun">.</span><span class="env">UPSTASH_REDIS_REST_TOKEN</span><span class="pun">!,</span>
+<span class="pun">});</span>
+
+<span class="kw">await</span> <span class="var">redis</span><span class="pun">.</span><span class="fn">set</span><span class="pun">(</span><span class="str">"user:1"</span><span class="pun">,</span> <span class="pun">{</span> <span class="var">name</span><span class="pun">:</span> <span class="str">"Alice"</span><span class="pun">,</span> <span class="var">role</span><span class="pun">:</span> <span class="str">"admin"</span> <span class="pun">});</span>
+<span class="kw">const</span> <span class="var">user</span> <span class="pun">=</span> <span class="kw">await</span> <span class="var">redis</span><span class="pun">.</span><span class="fn">get</span><span class="pun">(</span><span class="str">"user:1"</span><span class="pun">);</span>
+
+<span class="kw">await</span> <span class="var">redis</span><span class="pun">.</span><span class="fn">lpush</span><span class="pun">(</span><span class="str">"queue"</span><span class="pun">,</span> <span class="str">"task-1"</span><span class="pun">,</span> <span class="str">"task-2"</span><span class="pun">);</span>
+<span class="kw">const</span> <span class="var">task</span> <span class="pun">=</span> <span class="kw">await</span> <span class="var">redis</span><span class="pun">.</span><span class="fn">rpop</span><span class="pun">(</span><span class="str">"queue"</span><span class="pun">);</span>
+
+<span class="kw">const</span> <span class="var">pipe</span> <span class="pun">=</span> <span class="var">redis</span><span class="pun">.</span><span class="fn">pipeline</span><span class="pun">();</span>
+<span class="var">pipe</span><span class="pun">.</span><span class="fn">incr</span><span class="pun">(</span><span class="str">"counter"</span><span class="pun">);</span>
+<span class="var">pipe</span><span class="pun">.</span><span class="fn">get</span><span class="pun">(</span><span class="str">"counter"</span><span class="pun">);</span>
+<span class="kw">const</span> <span class="var">results</span> <span class="pun">=</span> <span class="kw">await</span> <span class="var">pipe</span><span class="pun">.</span><span class="fn">exec</span><span class="pun">();</span></pre>
+
+      <pre class="code" data-pane="curl" hidden><span class="com"># Publish a message that round-trips back to your dev server</span>
+<span class="pun">$</span> curl -X POST \
+    -H <span class="str">'Authorization: Bearer dev'</span> \
+    -H <span class="str">'Content-Type: application/json'</span> \
+    -d <span class="str">'{"hello":"world"}'</span> \
+    <span class="str">'http://localhost:8080/v2/publishJSON/http://localhost:3000/api/echo'</span>
+
+<span class="com"># =&gt; {"messageId":"msg_2j9a...","url":"http://localhost:3000/api/echo"}</span>
+
+<span class="com"># Single Redis command</span>
+<span class="pun">$</span> curl -X POST -H <span class="str">'Authorization: Bearer dev'</span> \
+    -d <span class="str">'["SET","mykey","myvalue"]'</span> http://localhost:8080/
+
+<span class="com"># Pipeline</span>
+<span class="pun">$</span> curl -X POST -H <span class="str">'Authorization: Bearer dev'</span> \
+    -d <span class="str">'[["SET","a","1"],["SET","b","2"],["MGET","a","b"]]'</span> \
+    http://localhost:8080/pipeline</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FEATURES ===================== -->
+<section id="features">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="section-eyebrow">What's inside</div>
+      <h2>Two services. One sidekick.</h2>
+      <p class="section-sub">downstash mirrors the Upstash wire shape closely — same headers, same JWT signing, same encoding flags. Your code can't tell the difference.</p>
+    </div>
+
+    <div class="feat-row">
+      <div class="feat">
+        <span class="badge">QStash</span>
+        <h3>Signed message delivery, locally.</h3>
+        <p>Publish to any URL — including <code style="font-family:var(--mono); color:var(--accent-2); font-size:13px;">localhost</code> — with delay, retries, callbacks, and HMAC-SHA256 signed JWTs that the official <code style="font-family:var(--mono); color:var(--accent-2); font-size:13px;">Receiver</code> verifies cleanly.</p>
+        <div class="feat-list">
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> publish &amp; publishJSON</div>
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Upstash-Method override</div>
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Delay &amp; Not-Before</div>
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Retries w/ exp. backoff</div>
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Per-attempt timeout</div>
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Forward-* headers</div>
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Success &amp; failure callbacks</div>
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Batch fan-out</div>
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Inspect &amp; cancel</div>
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> SQLite persistence</div>
+        </div>
+      </div>
+
+      <div class="feat" style="padding:0;">
+        <div class="qstash-viz">
+          <div class="qstash-step">
+            <div class="num">1</div>
+            <div class="label">POST /v2/publishJSON</div>
+            <div class="meta">your app</div>
+          </div>
+          <div class="qstash-arrow">↓</div>
+          <div class="qstash-step">
+            <div class="num">2</div>
+            <div class="label">enqueue + sign JWT</div>
+            <div class="meta">downstash · sqlite</div>
+          </div>
+          <div class="qstash-arrow">↓ tick 250ms</div>
+          <div class="qstash-step">
+            <div class="num">3</div>
+            <div class="label">deliver to localhost:3000</div>
+            <div class="meta">retry · backoff</div>
+          </div>
+          <div class="qstash-arrow">↓ on success/fail</div>
+          <div class="qstash-step">
+            <div class="num">4</div>
+            <div class="label">callback envelope</div>
+            <div class="meta">re-enqueue</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="feat-row" style="grid-template-columns: 1fr 1.1fr;">
+      <div class="feat" style="padding:0;">
+        <div class="cmd-cloud" id="cmdCloud"></div>
+      </div>
+      <div class="feat">
+        <span class="badge">Redis</span>
+        <h3>The commands you actually use, in-memory.</h3>
+        <p>Strings, hashes, lists, sets, sorted sets, pipelines, transactions, TTLs, scans. The <code style="font-family:var(--mono); color:var(--accent-2); font-size:13px;">@upstash/redis</code> SDK works without modification — same REST shape, same base64 encoding flag.</p>
+        <div class="feat-list">
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> 80+ commands across 7 types</div>
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> EX / PX / EXAT / PXAT TTLs</div>
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Pipelines &amp; multi-exec</div>
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> SCAN / HSCAN / SSCAN / ZSCAN</div>
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Sorted set unions/intersects</div>
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Single, pipeline, URL-path APIs</div>
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Upstash-Encoding: base64</div>
+          <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Resets on restart</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SIGNING ===================== -->
+<section id="signing">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="section-eyebrow">How signing works</div>
+      <h2>Real JWTs. Real verification.</h2>
+      <p class="section-sub">downstash signs every outbound delivery with a real HMAC-SHA256 JWT. The official Upstash <code style="font-family:var(--mono); color:var(--accent-2);">Receiver</code> verifies it — no shortcuts, no test-only paths in your code.</p>
+    </div>
+
+    <div class="signing">
+      <div class="jwt-box" aria-hidden="true">
+        <div class="jwt-row"><span class="k">alg</span><span class="v">HS256</span><span class="c">header</span></div>
+        <div class="jwt-row"><span class="k">typ</span><span class="v">JWT</span></div>
+        <div class="jwt-divider"></div>
+        <div class="jwt-row"><span class="k">iss</span><span class="v">"Upstash"</span><span class="c">payload</span></div>
+        <div class="jwt-row"><span class="k">sub</span><span class="v">https://localhost:3000/api/echo</span></div>
+        <div class="jwt-row"><span class="k">iat</span><span class="v">1764547200</span></div>
+        <div class="jwt-row"><span class="k">nbf</span><span class="v">1764547200</span></div>
+        <div class="jwt-row"><span class="k">exp</span><span class="v">1764547500</span><span class="c">+5m</span></div>
+        <div class="jwt-row"><span class="k">jti</span><span class="v">msg_2j9a4b7c1d</span></div>
+        <div class="jwt-row"><span class="k">body</span><span class="v">b64url(sha256(rawBody))</span></div>
+        <div class="jwt-divider"></div>
+        <div class="jwt-row"><span class="k">sig</span><span class="v" style="word-break:break-all;">HMAC_SHA256(currentSigningKey, header.payload)</span></div>
+      </div>
+      <div>
+        <h3>Verified by the same SDK you'll ship to production.</h3>
+        <p>Every claim matches Upstash's wire format. Pass the <code style="font-family:var(--mono); color:var(--accent-2);">Upstash-Signature</code> header into <code style="font-family:var(--mono); color:var(--accent-2);">Receiver.verify()</code> exactly as you would in prod — downstash returns a stable pair of keys so your <code style="font-family:var(--mono); color:var(--accent-2);">.env.local</code> never drifts between machines.</p>
+        <div class="keys">
+          <div>QSTASH_CURRENT_SIGNING_KEY = <span>sig_downstash_current_dev_key_…</span></div>
+          <div style="margin-top:6px;">QSTASH_NEXT_SIGNING_KEY = <span>sig_downstash_next_dev_key_…</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CLI ===================== -->
+<section id="cli" style="padding-top: 60px;">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="section-eyebrow">CLI</div>
+      <h2>Small surface. Every flag has an env var.</h2>
+    </div>
+
+    <div class="cli-grid">
+      <div class="cli-row"><code>downstash</code><span class="desc">Start the server (port 8080)</span></div>
+      <div class="cli-row"><code>downstash serve</code><span class="desc">Explicit serve subcommand</span></div>
+      <div class="cli-row"><code>downstash reset</code><span class="desc">Truncate the messages table</span></div>
+      <div class="cli-row"><code>downstash keys</code><span class="desc">Print signing keys + Redis config</span></div>
+      <div class="cli-row"><code>--port &lt;n&gt;</code><span class="desc">env: DOWNSTASH_PORT</span></div>
+      <div class="cli-row"><code>--db &lt;path&gt;</code><span class="desc">env: DOWNSTASH_DB</span></div>
+      <div class="cli-row"><code>--tick-ms &lt;n&gt;</code><span class="desc">Delivery loop interval (default 250)</span></div>
+      <div class="cli-row"><code>--log-level &lt;lvl&gt;</code><span class="desc">debug · info · warn · error</span></div>
+      <div class="cli-row"><code>--current-signing-key</code><span class="desc">Override current QStash key</span></div>
+      <div class="cli-row"><code>--next-signing-key</code><span class="desc">Override next QStash key</span></div>
+      <div class="cli-row"><code>--redis-token &lt;s&gt;</code><span class="desc">Redis auth token (default "dev")</span></div>
+      <div class="cli-row"><code>--quiet</code><span class="desc">Shorthand for --log-level=warn</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CTA ===================== -->
+<section style="padding: 60px 0 80px;">
+  <div class="wrap">
+    <div style="
+      max-width: 880px; margin: 0 auto;
+      padding: 56px 48px;
+      border-radius: 18px;
+      background:
+        radial-gradient(600px 200px at 50% 0%, rgba(139,92,246,0.20), transparent 65%),
+        linear-gradient(180deg, rgba(139,92,246,0.06) 0%, rgba(139,92,246,0.02) 100%);
+      border: 1px solid rgba(139,92,246,0.30);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    ">
+      <h2 style="font-size: 38px; margin: 0 0 14px;">Get the sidekick. Skip the workarounds.</h2>
+      <p style="color: var(--muted); max-width: 560px; margin: 0 auto 28px; font-size: 16px;">MIT licensed. Single binary. No telemetry, no account, no cloud — just a process on your machine that finally lets you build offline.</p>
+      <div style="display:inline-flex; gap: 12px; flex-wrap: wrap; justify-content: center;">
+        <a class="btn btn-primary" href="https://github.com/sskcfC15Xfoxd7X1sVFgipdzMRAkP/downstash" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.55v-1.93c-3.2.7-3.87-1.54-3.87-1.54-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.69 1.24 3.34.95.1-.74.4-1.24.72-1.53-2.55-.29-5.24-1.27-5.24-5.66 0-1.25.45-2.27 1.18-3.07-.12-.29-.51-1.46.11-3.04 0 0 .96-.31 3.15 1.17a10.97 10.97 0 0 1 5.74 0c2.19-1.48 3.15-1.17 3.15-1.17.62 1.58.23 2.75.11 3.04.74.8 1.18 1.82 1.18 3.07 0 4.4-2.69 5.36-5.25 5.65.41.36.78 1.06.78 2.13v3.16c0 .31.21.67.8.55C20.21 21.39 23.5 17.07 23.5 12 23.5 5.65 18.35.5 12 .5z"/></svg>
+          Clone the repo
+        </a>
+        <a class="btn btn-ghost" href="#quickstart">Read the quick start →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap foot-inner">
+    <div class="brand">
+      <div class="brand-mark">↓</div>
+      <span>downstash</span>
+    </div>
+    <span style="font-family: var(--mono); font-size: 12px; color: var(--dim);">MIT · Built for the Upstash community · Not affiliated with Upstash, Inc.</span>
+    <div class="foot-meta">
+      <a href="https://github.com/sskcfC15Xfoxd7X1sVFgipdzMRAkP/downstash" target="_blank" rel="noopener">github</a>
+      <a href="https://github.com/sskcfC15Xfoxd7X1sVFgipdzMRAkP/downstash/issues" target="_blank" rel="noopener">issues</a>
+      <a href="https://github.com/sskcfC15Xfoxd7X1sVFgipdzMRAkP/downstash#readme" target="_blank" rel="noopener">readme</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ---------- terminal type-out ---------- */
+(function(){
+  const target = document.getElementById('term');
+  if(!target) return;
+
+  const lines = [
+    {t:`<span class="prompt">$</span> <span class="cmd">downstash</span>\n`, d: 30},
+    {t:`<span class="dim">2026-04-30T08:42:11.012Z</span> <span class="info">INFO</span>  downstash listening port=<span class="key">8080</span> db=<span class="str">.downstash/db.sqlite</span> tickMs=<span class="key">250</span>\n`, d:18},
+    {t:`<span class="dim">2026-04-30T08:42:11.013Z</span> <span class="info">INFO</span>  redis ready commands=<span class="key">87</span> token=<span class="str">"dev"</span>\n`, d:18},
+    {t:`<span class="dim">2026-04-30T08:42:11.014Z</span> <span class="info">INFO</span>  qstash ready signing=<span class="ok">stable</span>\n\n`, d:24},
+    {t:`<span class="prompt">$</span> <span class="cmd">curl -X POST -H 'Authorization: Bearer dev' \\\n    -d '{"hello":"world"}' \\\n    'http://localhost:8080/v2/publishJSON/http://localhost:3000/api/echo'</span>\n`, d:14},
+    {t:`{"messageId":<span class="str">"msg_2j9a4b7c1d"</span>,"url":<span class="str">"http://localhost:3000/api/echo"</span>}\n\n`, d:20},
+    {t:`<span class="dim">2026-04-30T08:42:11.231Z</span> <span class="info">INFO</span>  publish accepted id=<span class="key">msg_2j9a4b7c1d</span>\n`, d:18},
+    {t:`<span class="dim">2026-04-30T08:42:11.488Z</span> <span class="ok">DELIV</span> POST <span class="key">localhost:3000</span> /api/echo <span class="ok">200</span> <span class="dim">42ms</span>\n\n`, d:24},
+    {t:`<span class="prompt">$</span> <span class="cmd">curl -d '["INCR","views"]' http://localhost:8080/ -H 'Authorization: Bearer dev'</span>\n`, d:14},
+    {t:`{"result":<span class="key">1</span>}\n`, d:18},
+    {t:`<span class="prompt">$</span> <span class="cmd">curl -d '["LPUSH","jobs","render","email"]' http://localhost:8080/ -H 'Authorization: Bearer dev'</span>\n`, d:14},
+    {t:`{"result":<span class="key">2</span>}\n\n`, d:18},
+    {t:`<span class="prompt">$</span> <span class="cmd">downstash keys</span>\n`, d:30},
+    {t:`<span class="dim">  current</span>  <span class="key">sig_downstash_current_dev_key_do_not_use_in_prod</span>\n`, d:14},
+    {t:`<span class="dim">  next   </span>  <span class="key">sig_downstash_next_dev_key_do_not_use_in_prod</span>\n`, d:14},
+    {t:`<span class="dim">  redis  </span>  token=<span class="str">"dev"</span>  url=<span class="str">"http://localhost:8080"</span>\n\n`, d:14},
+    {t:`<span class="prompt">$</span> <span class="warn">offline since 09:00</span>\n`, d: 30},
+    {t:`<span class="ok">✓</span> all good. <span class="dim">no internet required.</span>`, d: 30},
+  ];
+
+  // Tokenize each line into [tag-or-text-chunk] pieces so we never
+  // append a partial HTML tag to innerHTML.
+  function tokenize(html){
+    const out = [];
+    let i = 0;
+    while(i < html.length){
+      if(html[i] === '<'){
+        const end = html.indexOf('>', i);
+        if(end === -1){ out.push(html.slice(i)); break; }
+        out.push(html.slice(i, end + 1));      // whole tag, atomic
+        i = end + 1;
+      } else {
+        // emit text one char at a time so the type-out feels like typing
+        out.push(html[i]);
+        i++;
+      }
+    }
+    return out;
+  }
+
+  let i = 0, j = 0, tokens = tokenize(lines[0].t);
+  function step(){
+    if(i >= lines.length){
+      target.innerHTML += '<span class="cursor"></span>';
+      return;
+    }
+    const l = lines[i];
+    if(j < tokens.length){
+      target.innerHTML += tokens[j];
+      j++;
+      target.scrollTop = target.scrollHeight;
+      // tags emit instantly, characters use the line's delay
+      const wasTag = tokens[j-1].startsWith('<');
+      setTimeout(step, wasTag ? 0 : l.d/2);
+    } else {
+      i++; j = 0;
+      if(i < lines.length) tokens = tokenize(lines[i].t);
+      setTimeout(step, 80);
+    }
+  }
+  setTimeout(step, 400);
+})();
+
+/* ---------- code tabs ---------- */
+(function(){
+  const block = document.getElementById('cb-install');
+  if(!block) return;
+  const tabs = block.querySelectorAll('.tab');
+  const panes = block.querySelectorAll('pre.code');
+  tabs.forEach(t => t.addEventListener('click', () => {
+    tabs.forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    panes.forEach(p => p.hidden = (p.dataset.pane !== t.dataset.tab));
+  }));
+  const copyBtn = document.getElementById('copyBtn');
+  copyBtn.addEventListener('click', async () => {
+    const visible = block.querySelector('pre.code:not([hidden])');
+    if(!visible) return;
+    try{
+      await navigator.clipboard.writeText(visible.textContent);
+      copyBtn.classList.add('copied');
+      copyBtn.querySelector('span').textContent = 'Copied';
+      setTimeout(() => {
+        copyBtn.classList.remove('copied');
+        copyBtn.querySelector('span').textContent = 'Copy';
+      }, 1400);
+    }catch(e){}
+  });
+})();
+
+/* ---------- redis command cloud ---------- */
+(function(){
+  const cloud = document.getElementById('cmdCloud');
+  if(!cloud) return;
+  const cmds = [
+    'SET','GET','MSET','MGET','SETNX','SETEX','INCR','INCRBY','DECR','APPEND','STRLEN','GETRANGE','GETDEL','GETEX',
+    'DEL','EXISTS','EXPIRE','TTL','PERSIST','RENAME','TYPE','KEYS','SCAN','UNLINK','DBSIZE','FLUSHDB','RANDOMKEY','COPY',
+    'HSET','HGET','HMGET','HGETALL','HDEL','HEXISTS','HLEN','HKEYS','HVALS','HINCRBY','HSCAN',
+    'LPUSH','RPUSH','LPOP','RPOP','LRANGE','LLEN','LINDEX','LSET','LINSERT','LREM','LTRIM',
+    'SADD','SREM','SMEMBERS','SISMEMBER','SCARD','SPOP','SRANDMEMBER','SUNION','SINTER','SDIFF','SSCAN',
+    'ZADD','ZREM','ZSCORE','ZRANK','ZRANGE','ZRANGEBYSCORE','ZREVRANGE','ZCARD','ZCOUNT','ZINCRBY','ZPOPMIN','ZPOPMAX','ZUNIONSTORE','ZSCAN',
+    'PING','ECHO','TIME'
+  ];
+  cmds.forEach(c => {
+    const el = document.createElement('span');
+    el.className = 'cmd-chip';
+    el.textContent = c;
+    cloud.appendChild(el);
+  });
+  // randomly highlight a moving subset
+  const chips = cloud.querySelectorAll('.cmd-chip');
+  function bump(){
+    chips.forEach(c => c.classList.remove('hi'));
+    const n = 6 + Math.floor(Math.random()*4);
+    const idxs = new Set();
+    while(idxs.size < n) idxs.add(Math.floor(Math.random()*chips.length));
+    idxs.forEach(i => chips[i].classList.add('hi'));
+  }
+  bump();
+  setInterval(bump, 1400);
+})();
+
+/* ---------- why card mouse glow ---------- */
+document.querySelectorAll('.why-card').forEach(card => {
+  card.addEventListener('mousemove', e => {
+    const r = card.getBoundingClientRect();
+    card.style.setProperty('--mx', ((e.clientX - r.left)/r.width*100) + '%');
+    card.style.setProperty('--my', ((e.clientY - r.top)/r.height*100) + '%');
+  });
+});
+</script>
+</body>
+</html>
